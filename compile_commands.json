@@ -1,0 +1,97 @@
+[
+  {
+    "file": "utils.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "--std=c99",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Werror=return-type",
+      "-D",
+      "MACOS",
+      "-I/opt/homebrew/include",
+      "-o",
+      "splitflap",
+      "utils.c"
+    ],
+    "directory": "/Users/antoine/Programming/C/splitflap",
+    "output": "splitflap"
+  },
+  {
+    "file": "api.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "--std=c99",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Werror=return-type",
+      "-D",
+      "MACOS",
+      "-I/opt/homebrew/include",
+      "-o",
+      "splitflap",
+      "api.c"
+    ],
+    "directory": "/Users/antoine/Programming/C/splitflap",
+    "output": "splitflap"
+  },
+  {
+    "file": "json.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "--std=c99",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Werror=return-type",
+      "-D",
+      "MACOS",
+      "-I/opt/homebrew/include",
+      "-o",
+      "splitflap",
+      "json.c"
+    ],
+    "directory": "/Users/antoine/Programming/C/splitflap",
+    "output": "splitflap"
+  },
+  {
+    "file": "api_sncf.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "--std=c99",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Werror=return-type",
+      "-D",
+      "MACOS",
+      "-I/opt/homebrew/include",
+      "-o",
+      "splitflap",
+      "api_sncf.c"
+    ],
+    "directory": "/Users/antoine/Programming/C/splitflap",
+    "output": "splitflap"
+  },
+  {
+    "file": "main.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "--std=c99",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Werror=return-type",
+      "-D",
+      "MACOS",
+      "-I/opt/homebrew/include",
+      "-o",
+      "splitflap",
+      "main.c"
+    ],
+    "directory": "/Users/antoine/Programming/C/splitflap",
+    "output": "splitflap"
+  }
+]
