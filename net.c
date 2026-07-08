@@ -1,14 +1,16 @@
 #include "net.h"
 
 #include <curl/curl.h>
+#include <ncurses.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <ncurses.h>
 
 #include "config.h"
+
+CURL* net_curl;
 
 void net_init() {
     CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
@@ -16,9 +18,18 @@ void net_init() {
         fprintf(stderr, "error: cannot initialize libcurl (error code %d)\n",
                 (int)result);
     }
+
+    net_curl = curl_easy_init();
+    if (!net_curl) {
+        fprintf(stderr, "error: cannot initialize easy curl\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
-void net_cleanup() { curl_global_cleanup(); }
+void net_cleanup() {
+    curl_easy_cleanup(net_curl);
+    curl_global_cleanup();
+}
 
 response_t net_response_init(size_t buffer_size) {
     response_t response = {.buffer_size = 0, .pos = 0, .content = NULL};
@@ -41,7 +52,7 @@ void net_response_clean(response_t* response) {
 }
 
 static size_t net_write_buffer(char* buffer, size_t size, size_t nmemb,
-                             void* stream) {
+                               void* stream) {
     response_t* response = (response_t*)stream;
 
     if (response->pos + size * nmemb >= response->buffer_size) {
@@ -65,35 +76,31 @@ void net_set_auth_headers(struct curl_slist** headers_list) {
 response_t net_get(char* url) {
     response_t response = {.content = NULL, .buffer_size = 0, .pos = 0};
 
-    CURL* curl = curl_easy_init();
-    if (!curl) {
-        fprintf(stderr, "error: cannot initialize easy curl\n");
-        return response;
+    if (!net_curl) {
+        fprintf(stderr, "error: curl is uninitialized\n");
     }
 
-    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(net_curl, CURLOPT_URL, url);
 
     struct curl_slist* list = NULL;
     // TODO remove API key in the future
 
     net_set_auth_headers(&list);
 
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+    curl_easy_setopt(net_curl, CURLOPT_HTTPHEADER, list);
 
     response = net_response_init(BUFFER_SIZE);
 
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, net_write_buffer);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(net_curl, CURLOPT_WRITEFUNCTION, net_write_buffer);
+    curl_easy_setopt(net_curl, CURLOPT_WRITEDATA, &response);
 
-    CURLcode result = curl_easy_perform(curl);
+    CURLcode result = curl_easy_perform(net_curl);
     if (result != CURLE_OK) {
         fprintf(stderr, "error: couldn't perform curl request %s\n",
                 curl_easy_strerror(result));
         net_response_clean(&response);
         return response;
     }
-
-    curl_easy_cleanup(curl);
 
     return response;
 }
