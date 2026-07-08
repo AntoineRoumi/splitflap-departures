@@ -2,7 +2,7 @@ CC=gcc
 C_FLAGS=-g -Wall -Wextra -Wno-unused-parameter -Werror=return-type
 LIBS=-lncurses -lcdk -lcurl -ljansson
 LD_FLAGS=
-SRC=config.c utils.c api.c json.c api_sncf.c gui.c main.c
+SRC=config.c utils.c net.c updater.c json.c api_sncf.c gui.c main.c
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)

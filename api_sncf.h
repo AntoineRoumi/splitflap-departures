@@ -30,4 +30,4 @@ typedef struct _sncf_departure_table {
 
 json_t* load_json_from_file(char* path);
 
-sncf_departure_table parse_sncf_departures(char* stop_area);
+sncf_departure_table sncf_parse_departures(char* stop_area);

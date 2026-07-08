@@ -31,7 +31,7 @@ train_time_t sncf_parse_time(char* time_text) {
     return time;
 }
 
-sncf_departure_table parse_sncf_departures(char* stop_area) {
+sncf_departure_table sncf_parse_departures(char* stop_area) {
     sncf_departure_table dep_table = {.n_departures = 0, .departures = NULL};
 
     json_t* j_root = load_json_from_url(SNCF_STOP_AREA_URL);

@@ -10,12 +10,12 @@ typedef struct _response {
     char* content;
 } response_t;
 
-response_t api_response_init(size_t content_max_size);
+response_t net_response_init(size_t content_max_size);
 
-void api_response_clean(response_t* response);
+void net_response_clean(response_t* response);
 
-void api_init();
+void net_init();
 
-void api_cleanup();
+void net_cleanup();
 
-response_t api_get(char* url);
+response_t net_get(char* url);

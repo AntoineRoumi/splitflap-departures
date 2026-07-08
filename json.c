@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "api.h"
+#include "net.h"
 
 json_t* load_json_from_file(char* path) {
     json_t* j_root;
@@ -22,7 +22,7 @@ json_t* load_json_from_url(char* url) {
     json_t* j_root;
     json_error_t error;
 
-    response_t response = api_get(url);
+    response_t response = net_get(url);
     if (response.content == NULL) {
         fprintf(stderr, "error: no content in response from %s", url);
         return NULL;
@@ -35,7 +35,7 @@ json_t* load_json_from_url(char* url) {
         return NULL;
     }
 
-    api_response_clean(&response);
+    net_response_clean(&response);
 
     return j_root;
 }

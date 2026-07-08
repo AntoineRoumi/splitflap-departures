@@ -1,8 +1,10 @@
 #include <ncurses.h>
+#include <pthread.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "./api_sncf.h"
-#include "api.h"
+#include "net.h"
+#include "api_sncf.h"
 #include "config.h"
 #include "gui.h"
 
@@ -11,9 +13,9 @@ int main(int argc, char* argv[]) {
     load_config();
 
     // Init curl
-    api_init();
+    net_init();
 
-    sncf_departure_table dep_table = parse_sncf_departures("");
+    sncf_departure_table dep_table = sncf_parse_departures("");
 
     gui_init();
 
@@ -43,7 +45,7 @@ _exit:
     gui_terminate();
 
     // Cleanup curl
-    api_cleanup();
+    net_cleanup();
 
     return 0;
 }
