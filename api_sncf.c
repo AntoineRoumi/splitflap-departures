@@ -2,12 +2,19 @@
 
 #include <curl/curl.h>
 #include <jansson.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "json.h"
+#include "net.h"
 #include "utils.h"
 
+sncf_departure_table g_departure_table = {.n_departures = 0,
+                                          .departures = NULL};
+pthread_mutex_t g_departure_table_mutex = PTHREAD_MUTEX_INITIALIZER;
+bool g_departure_table_updated = false;
+char* g_current_stop_area = "";
 
 // SNCF time format is yyyymmddThhmmss (T is the separator character)
 // Returns { -1, -1 } in case of an error
@@ -31,43 +38,48 @@ train_time_t sncf_parse_time(char* time_text) {
     return time;
 }
 
-sncf_departure_table sncf_parse_departures(char* stop_area) {
-    sncf_departure_table dep_table = {.n_departures = 0, .departures = NULL};
-
+void sncf_get_departure_table(char* stop_area,
+                              sncf_departure_table* dep_table) {
     json_t* j_root = load_json_from_url(SNCF_STOP_AREA_URL);
+
+    sncf_parse_departure_table_from_json(j_root, dep_table);
+}
+
+void sncf_parse_departure_table_from_json(json_t* j_root,
+                                          sncf_departure_table* dep_table) {
     if (!j_root) {
         fprintf(stderr, "error: couldn't load json from %s\n",
                 SNCF_STOP_AREA_URL);
-        return dep_table;
+        return;
     }
 
     if (!json_is_object(j_root)) {
         fprintf(stderr, "error: root is not an object\n");
         json_decref(j_root);
-        return dep_table;
+        return;
     }
 
     json_t* j_departures = json_object_get(j_root, "departures");
     if (!j_departures) {
         fprintf(stderr, "error: departures is null\n");
         json_decref(j_root);
-        return dep_table;
+        return;
     }
     if (!json_is_array(j_departures)) {
         fprintf(stderr, "error: departures is not an array\n");
         json_decref(j_root);
-        return dep_table;
+        return;
     }
 
-    dep_table.n_departures = json_array_size(j_departures);
-    dep_table.departures =
-        malloc(dep_table.n_departures * sizeof(sncf_departure));
-    if (dep_table.departures == NULL) {
+    dep_table->n_departures = json_array_size(j_departures);
+    dep_table->departures =
+        realloc(dep_table->departures,
+                dep_table->n_departures * sizeof(sncf_departure));
+    if (dep_table->departures == NULL) {
         fprintf(stderr,
                 "error: couldn't allocate departure_table.departures\n");
-        dep_table.n_departures = 0;
+        dep_table->n_departures = 0;
         json_decref(j_root);
-        return dep_table;
     }
 
     json_t* j_dep;
@@ -79,14 +91,14 @@ sncf_departure_table sncf_parse_departures(char* stop_area) {
             fprintf(stderr, "error: departure is not an object\n");
             json_decref(j_root);
         } else {
-            dep = &dep_table.departures[i];
+            dep = &dep_table->departures[i];
             json_unpack(j_dep, "{s: {s: s}, s: {s:s, s:s, s:s, s:s}}",
                         "stop_date_time", "departure_date_time", &datetime,
                         "display_informations", "direction", &dest,
                         "commercial_mode", &commercial_mode, "code", &code,
                         "headsign", &train_number);
 
-            sscanf(dest, "%[^(]", dep_table.departures[i].dest);
+            sscanf(dest, "%[^(]", dep_table->departures[i].dest);
             trim_right(dep->dest);
             if (strlen(code) == 0) {
                 strcpy(dep->line, commercial_mode);
@@ -94,9 +106,28 @@ sncf_departure_table sncf_parse_departures(char* stop_area) {
                 snprintf(dep->line, 32, "%s %s", commercial_mode, code);
             }
             strcpy(dep->train_number, train_number);
-            dep_table.departures[i].dep_time = sncf_parse_time(datetime);
+            dep_table->departures[i].dep_time = sncf_parse_time(datetime);
         }
     }
+}
 
-    return dep_table;
+void sncf_update_departures() {
+    json_t* j_content = load_json_from_url(SNCF_STOP_AREA_URL);
+
+    pthread_mutex_lock(&g_departure_table_mutex);
+
+    sncf_parse_departure_table_from_json(j_content, &g_departure_table);
+
+    g_departure_table_updated = true;
+
+    pthread_mutex_unlock(&g_departure_table_mutex);
+}
+
+void sncf_update_station_name(const char* name) {
+    pthread_mutex_lock(&g_departure_table_mutex);
+
+    strcpy(g_departure_table.station_name, name);
+    g_departure_table_updated = true;
+
+    pthread_mutex_unlock(&g_departure_table_mutex);
 }

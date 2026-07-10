@@ -73,8 +73,7 @@ void net_set_auth_headers(struct curl_slist** headers_list) {
     *headers_list = curl_slist_append(*headers_list, auth_header);
 }
 
-response_t net_get(char* url) {
-    response_t response = {.content = NULL, .buffer_size = 0, .pos = 0};
+char* net_get(char* url) {
 
     if (!net_curl) {
         fprintf(stderr, "error: curl is uninitialized\n");
@@ -89,7 +88,7 @@ response_t net_get(char* url) {
 
     curl_easy_setopt(net_curl, CURLOPT_HTTPHEADER, list);
 
-    response = net_response_init(BUFFER_SIZE);
+    response_t response = net_response_init(BUFFER_SIZE);
 
     curl_easy_setopt(net_curl, CURLOPT_WRITEFUNCTION, net_write_buffer);
     curl_easy_setopt(net_curl, CURLOPT_WRITEDATA, &response);
@@ -99,8 +98,8 @@ response_t net_get(char* url) {
         fprintf(stderr, "error: couldn't perform curl request %s\n",
                 curl_easy_strerror(result));
         net_response_clean(&response);
-        return response;
+        return NULL;
     }
 
-    return response;
+    return response.content;
 }

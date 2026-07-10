@@ -3,10 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "net.h"
 #include "api_sncf.h"
 #include "config.h"
 #include "gui.h"
+#include "net.h"
+#include "update.h"
 
 int main(int argc, char* argv[]) {
     // Load config
@@ -15,11 +16,10 @@ int main(int argc, char* argv[]) {
     // Init curl
     net_init();
 
-    sncf_departure_table dep_table = sncf_parse_departures("");
-
     gui_init();
 
-    gui_display_departures(&dep_table);
+    // Update every minute
+    update_t *departure_table_updater = update_start(60, sncf_update_departures);
 
     char c = ' ';
     char* station_name;
@@ -29,7 +29,9 @@ int main(int argc, char* argv[]) {
         switch (c) {
             case 's':
                 station_name = gui_station_name_entry();
-                strcpy(dep_table.station_name, station_name);
+
+                sncf_update_station_name(station_name);
+
                 free(station_name);
                 break;
             case 'q':
@@ -37,10 +39,13 @@ int main(int argc, char* argv[]) {
                 break;
         }
 
-        gui_display_departures(&dep_table);
+        if (g_departure_table_updated) {
+            gui_update_departures();
+        }
     }
 
 _exit:
+    update_stop(departure_table_updater);
 
     gui_terminate();
 

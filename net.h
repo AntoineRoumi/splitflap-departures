@@ -18,4 +18,4 @@ void net_init();
 
 void net_cleanup();
 
-response_t net_get(char* url);
+char* net_get(char* url);

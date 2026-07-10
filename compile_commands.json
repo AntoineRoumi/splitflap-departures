@@ -1,97 +1,170 @@
 [
   {
-    "file": "utils.c",
     "arguments": [
       "/usr/bin/gcc",
+      "-c",
       "--std=c99",
+      "-g",
       "-Wall",
       "-Wextra",
       "-Wno-unused-parameter",
       "-Werror=return-type",
       "-D",
-      "MACOS",
-      "-I/opt/homebrew/include",
+      "LINUX",
+      "-pthread",
+      "-o",
+      "splitflap",
+      "config.c"
+    ],
+    "directory": "/home/antoine/Programming/C/splitflap-departures",
+    "file": "/home/antoine/Programming/C/splitflap-departures/config.c",
+    "output": "/home/antoine/Programming/C/splitflap-departures/splitflap"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "--std=c99",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Werror=return-type",
+      "-D",
+      "LINUX",
+      "-pthread",
       "-o",
       "splitflap",
       "utils.c"
     ],
-    "directory": "/Users/antoine/Programming/C/splitflap",
-    "output": "splitflap"
+    "directory": "/home/antoine/Programming/C/splitflap-departures",
+    "file": "/home/antoine/Programming/C/splitflap-departures/utils.c",
+    "output": "/home/antoine/Programming/C/splitflap-departures/splitflap"
   },
   {
-    "file": "api.c",
     "arguments": [
       "/usr/bin/gcc",
+      "-c",
       "--std=c99",
+      "-g",
       "-Wall",
       "-Wextra",
       "-Wno-unused-parameter",
       "-Werror=return-type",
       "-D",
-      "MACOS",
-      "-I/opt/homebrew/include",
+      "LINUX",
+      "-pthread",
       "-o",
       "splitflap",
-      "api.c"
+      "net.c"
     ],
-    "directory": "/Users/antoine/Programming/C/splitflap",
-    "output": "splitflap"
+    "directory": "/home/antoine/Programming/C/splitflap-departures",
+    "file": "/home/antoine/Programming/C/splitflap-departures/net.c",
+    "output": "/home/antoine/Programming/C/splitflap-departures/splitflap"
   },
   {
-    "file": "json.c",
     "arguments": [
       "/usr/bin/gcc",
+      "-c",
       "--std=c99",
+      "-g",
       "-Wall",
       "-Wextra",
       "-Wno-unused-parameter",
       "-Werror=return-type",
       "-D",
-      "MACOS",
-      "-I/opt/homebrew/include",
+      "LINUX",
+      "-pthread",
+      "-o",
+      "splitflap",
+      "update.c"
+    ],
+    "directory": "/home/antoine/Programming/C/splitflap-departures",
+    "file": "/home/antoine/Programming/C/splitflap-departures/update.c",
+    "output": "/home/antoine/Programming/C/splitflap-departures/splitflap"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "--std=c99",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Werror=return-type",
+      "-D",
+      "LINUX",
+      "-pthread",
       "-o",
       "splitflap",
       "json.c"
     ],
-    "directory": "/Users/antoine/Programming/C/splitflap",
-    "output": "splitflap"
+    "directory": "/home/antoine/Programming/C/splitflap-departures",
+    "file": "/home/antoine/Programming/C/splitflap-departures/json.c",
+    "output": "/home/antoine/Programming/C/splitflap-departures/splitflap"
   },
   {
-    "file": "api_sncf.c",
     "arguments": [
       "/usr/bin/gcc",
+      "-c",
       "--std=c99",
+      "-g",
       "-Wall",
       "-Wextra",
       "-Wno-unused-parameter",
       "-Werror=return-type",
       "-D",
-      "MACOS",
-      "-I/opt/homebrew/include",
+      "LINUX",
+      "-pthread",
       "-o",
       "splitflap",
       "api_sncf.c"
     ],
-    "directory": "/Users/antoine/Programming/C/splitflap",
-    "output": "splitflap"
+    "directory": "/home/antoine/Programming/C/splitflap-departures",
+    "file": "/home/antoine/Programming/C/splitflap-departures/api_sncf.c",
+    "output": "/home/antoine/Programming/C/splitflap-departures/splitflap"
   },
   {
-    "file": "main.c",
     "arguments": [
       "/usr/bin/gcc",
+      "-c",
       "--std=c99",
+      "-g",
       "-Wall",
       "-Wextra",
       "-Wno-unused-parameter",
       "-Werror=return-type",
       "-D",
-      "MACOS",
-      "-I/opt/homebrew/include",
+      "LINUX",
+      "-pthread",
+      "-o",
+      "splitflap",
+      "gui.c"
+    ],
+    "directory": "/home/antoine/Programming/C/splitflap-departures",
+    "file": "/home/antoine/Programming/C/splitflap-departures/gui.c",
+    "output": "/home/antoine/Programming/C/splitflap-departures/splitflap"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "--std=c99",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Werror=return-type",
+      "-D",
+      "LINUX",
+      "-pthread",
       "-o",
       "splitflap",
       "main.c"
     ],
-    "directory": "/Users/antoine/Programming/C/splitflap",
-    "output": "splitflap"
+    "directory": "/home/antoine/Programming/C/splitflap-departures",
+    "file": "/home/antoine/Programming/C/splitflap-departures/main.c",
+    "output": "/home/antoine/Programming/C/splitflap-departures/splitflap"
   }
 ]

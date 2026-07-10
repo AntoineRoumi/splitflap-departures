@@ -4,6 +4,19 @@
 
 #include "net.h"
 
+json_t* load_json_from_text(char* text) {
+    json_t *j_root;
+    json_error_t error;
+    j_root = json_loads(text, 0, &error);
+
+    if (!j_root) {
+        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
+        return NULL;
+    }
+
+    return j_root;
+}
+
 json_t* load_json_from_file(char* path) {
     json_t* j_root;
     json_error_t error;
@@ -20,22 +33,16 @@ json_t* load_json_from_file(char* path) {
 
 json_t* load_json_from_url(char* url) {
     json_t* j_root;
-    json_error_t error;
 
-    response_t response = net_get(url);
-    if (response.content == NULL) {
+    char* content = net_get(url);
+    if (content == NULL) {
         fprintf(stderr, "error: no content in response from %s", url);
         return NULL;
     }
 
-    j_root = json_loads(response.content, 0, &error);
+    j_root = load_json_from_text(content);
 
-    if (!j_root) {
-        fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
-        return NULL;
-    }
-
-    net_response_clean(&response);
+    free(content);
 
     return j_root;
 }

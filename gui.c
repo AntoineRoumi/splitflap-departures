@@ -1,6 +1,7 @@
 #include "gui.h"
 
 #include <ncurses.h>
+#include <pthread.h>
 #include <string.h>
 
 #include "api_sncf.h"
@@ -32,6 +33,7 @@ void gui_init() {
 }
 
 char gui_process_event() {
+    nodelay(stdscr, TRUE);
     int c = getch();
 
     // Process some special gui events first
@@ -87,6 +89,19 @@ char* gui_station_name_entry() {
     station_name[current_length] = '\0';
 
     return station_name;
+}
+
+void gui_update_departures() {
+    if (!g_departure_table_updated) {
+        gui_display_departures(&g_departure_table);
+    }
+
+    pthread_mutex_lock(&g_departure_table_mutex);
+
+    gui_display_departures(&g_departure_table);
+    g_departure_table_updated = false;
+
+    pthread_mutex_unlock(&g_departure_table_mutex);
 }
 
 void gui_display_departures(sncf_departure_table* departure_table) {

@@ -3,24 +3,19 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#include "net.h"
+typedef void (*update_callback_t)(void);
 
-typedef void (*update_net_callback)(response_t*);
-
-typedef struct _update_net_thread_input {
-    char* url;
+typedef struct _update_thread_input {
     int interval_seconds;
-    update_net_callback callback;
-    bool* stop_update;
-} update_net_thread_input;
+    update_callback_t callback;
+} update_thread_input_t;
 
 typedef struct _update {
     pthread_t thread_id;
-    bool stop_update;
-    update_net_thread_input input;
+    update_thread_input_t input;
 } update_t;
 
-update_t* update_net_start(char* url, int interval_seconds,
-                           update_net_callback callback);
+update_t* update_start(int interval_seconds,
+                           update_callback_t callback);
 
-void update_net_stop(update_t* update);
+void update_stop(update_t* update);

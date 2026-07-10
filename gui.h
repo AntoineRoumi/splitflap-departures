@@ -8,6 +8,8 @@ char gui_process_event();
 
 void gui_terminate();
 
+void gui_update_departures();
+
 void gui_display_departures(sncf_departure_table *departures);
 
 char *gui_station_name_entry();
