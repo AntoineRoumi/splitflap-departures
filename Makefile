@@ -1,6 +1,6 @@
 CC=gcc
 C_FLAGS=-g -Wall -Wextra -Wno-unused-parameter -Werror=return-type
-LIBS=-lncurses -lcdk -lcurl -ljansson -pthread
+LIBS=-lncurses -lcurl -ljansson -pthread
 LD_FLAGS=
 SRC=config.c utils.c net.c update.c json.c api_sncf.c gui.c main.c
 
