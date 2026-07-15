@@ -1,7 +1,6 @@
 #include <ncurses.h>
 #include <pthread.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "api_sncf.h"
 #include "config.h"
@@ -15,6 +14,8 @@ int main(int argc, char* argv[]) {
 
     // Init curl
     net_init();
+
+    sncf_init_api("87686006");
 
     gui_init();
 

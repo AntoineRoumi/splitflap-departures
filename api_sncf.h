@@ -7,12 +7,16 @@
 
 #define SNCF_STOP_AREA_URL                              \
     "https://api.sncf.com/v1/coverage/sncf/stop_areas/" \
-    "stop_area:SNCF:87113001/"                          \
+    "stop_area:SNCF:%s/"                          \
     "departures"
 
 typedef struct _train_time {
+    int day;
+    int month;
+    int year;
     int hour;
     int minute;
+    int seconds;
 } train_time_t;
 
 typedef struct _sncf_departure {
@@ -20,7 +24,7 @@ typedef struct _sncf_departure {
     char line[32];
     char dest[64];
     train_time_t dep_time;
-    train_time_t delay;
+    int delay; // delay in minutes
 } sncf_departure;
 
 typedef struct _sncf_departure_table {
@@ -36,8 +40,11 @@ extern sncf_departure_table g_departure_table;
 extern pthread_mutex_t g_departure_table_mutex;
 extern bool g_departure_table_updated;
 extern char* g_current_stop_area;
+extern char* g_current_departures_url;
 
 json_t* load_json_from_file(char* path);
+
+void sncf_init_api(char *stop_area);
 
 void sncf_get_departure_table(char* stop_area, sncf_departure_table* dep_table);
 

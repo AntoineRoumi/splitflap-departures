@@ -129,7 +129,13 @@ void gui_display_departures(sncf_departure_table* departure_table) {
         }
         mvprintw(row_y, GUI_TIME_OFFSET, "%02d:%02d", dep->dep_time.hour,
                  dep->dep_time.minute);
-        mvprintw(row_y, GUI_DELAY_OFFSET, "On time");
+
+        if (dep->delay <= 0) {
+            mvprintw(row_y, GUI_DELAY_OFFSET, "On time");
+        } else {
+            mvprintw(row_y, GUI_DELAY_OFFSET, "+%d'", dep->delay);
+        }
+
         mvprintw(row_y, GUI_LINE_OFFSET, "%s", dep->line);
         mvprintw(row_y, GUI_TRAIN_NUMBER_OFFSET, "%s", dep->train_number);
         mvprintw(row_y, GUI_DESTINATION_OFFSET, "%s", dep->dest);

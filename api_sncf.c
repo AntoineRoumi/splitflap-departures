@@ -2,45 +2,76 @@
 
 #include <curl/curl.h>
 #include <jansson.h>
+#include <ncurses.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "json.h"
-#include "net.h"
 #include "utils.h"
 
 sncf_departure_table g_departure_table = {.n_departures = 0,
                                           .departures = NULL};
 pthread_mutex_t g_departure_table_mutex = PTHREAD_MUTEX_INITIALIZER;
 bool g_departure_table_updated = false;
-char* g_current_stop_area = "";
+char* g_current_stop_area = NULL;
+char* g_current_departures_url = NULL; 
+
+void sncf_init_api(char *stop_area) {
+    g_current_stop_area = realloc(g_current_stop_area, strlen(stop_area) + 1);
+    strcpy(g_current_stop_area, stop_area);
+
+    g_current_departures_url = realloc(g_current_departures_url, snprintf(NULL, 0, SNCF_STOP_AREA_URL, stop_area) + 1);
+    sprintf(g_current_departures_url, SNCF_STOP_AREA_URL, stop_area);
+}
 
 // SNCF time format is yyyymmddThhmmss (T is the separator character)
 // Returns { -1, -1 } in case of an error
-train_time_t sncf_parse_time(char* time_text) {
-    train_time_t time = {.hour = -1, .minute = -1};
-
+void sncf_parse_time(char* time_text, train_time_t* time) {
     // Check if the string looks like a valid sncf time string
     if (strlen(time_text) != 15 || time_text[8] != 'T') {
         fprintf(stderr, "error: not an sncf time format\n");
-        return time;
+
+        time->hour = -1;
+        time->minute = -1;
+        time->seconds = -1;
+        return;
     }
 
-    int result = sscanf(time_text + 9, "%2d%2d", &time.hour, &time.minute);
-    if (result != 2) {
+    int result =
+        sscanf(time_text, "%4d%2d%2dT%2d%2d%2d", &time->day, &time->minute,
+               &time->year, &time->hour, &time->minute, &time->seconds);
+    if (result != 6) {
         fprintf(stderr, "error: invalid time format\n");
-        time.hour = -1;
-        time.minute = -1;
-        return time;
-    }
 
-    return time;
+        time->hour = -1;
+        time->minute = -1;
+        time->seconds = -1;
+        return;
+    }
+}
+
+// We assume that the delay is < 24h
+int sncf_compute_delay(train_time_t* base_departure_time,
+                       train_time_t* current_departure_time) {
+    if (base_departure_time->hour > current_departure_time->hour) {
+        return (
+            24 * 60 -
+            ((base_departure_time->hour * 60 + base_departure_time->minute)) -
+            (current_departure_time->hour * 60 +
+             current_departure_time->minute));
+    } else {
+        return 60 * (current_departure_time->hour - base_departure_time->hour) +
+               (current_departure_time->minute - base_departure_time->minute);
+    }
 }
 
 void sncf_get_departure_table(char* stop_area,
                               sncf_departure_table* dep_table) {
-    json_t* j_root = load_json_from_url(SNCF_STOP_AREA_URL);
+    char *url = malloc(snprintf(NULL, 0, SNCF_STOP_AREA_URL, stop_area) + 1);
+    sprintf(url, SNCF_STOP_AREA_URL, stop_area);
+    json_t* j_root = load_json_from_url(url);
 
     sncf_parse_departure_table_from_json(j_root, dep_table);
 }
@@ -83,7 +114,8 @@ void sncf_parse_departure_table_from_json(json_t* j_root,
     }
 
     json_t* j_dep;
-    char *train_number, *commercial_mode, *code, *dest, *datetime;
+    char *train_number, *commercial_mode, *code, *dest, *base_departure_time,
+        *current_departure_time;
     sncf_departure* dep;
     for (size_t i = 0; i < json_array_size(j_departures); ++i) {
         j_dep = json_array_get(j_departures, i);
@@ -92,11 +124,12 @@ void sncf_parse_departure_table_from_json(json_t* j_root,
             json_decref(j_root);
         } else {
             dep = &dep_table->departures[i];
-            json_unpack(j_dep, "{s: {s: s}, s: {s:s, s:s, s:s, s:s}}",
-                        "stop_date_time", "departure_date_time", &datetime,
-                        "display_informations", "direction", &dest,
-                        "commercial_mode", &commercial_mode, "code", &code,
-                        "headsign", &train_number);
+            json_unpack(j_dep, "{s: {s:s, s:s}, s: {s:s, s:s, s:s, s:s}}",
+                        "stop_date_time", "base_departure_date_time",
+                        &base_departure_time, "departure_date_time",
+                        &current_departure_time, "display_informations",
+                        "direction", &dest, "commercial_mode", &commercial_mode,
+                        "code", &code, "headsign", &train_number);
 
             sscanf(dest, "%[^(]", dep_table->departures[i].dest);
             trim_right(dep->dest);
@@ -106,13 +139,19 @@ void sncf_parse_departure_table_from_json(json_t* j_root,
                 snprintf(dep->line, 32, "%s %s", commercial_mode, code);
             }
             strcpy(dep->train_number, train_number);
-            dep_table->departures[i].dep_time = sncf_parse_time(datetime);
+
+            train_time_t base_datetime, current_datetime;
+            sncf_parse_time(base_departure_time, &base_datetime);
+            sncf_parse_time(current_departure_time, &current_datetime);
+
+            dep->delay = sncf_compute_delay(&base_datetime, &current_datetime);
+            dep->dep_time = current_datetime;
         }
     }
 }
 
 void sncf_update_departures() {
-    json_t* j_content = load_json_from_url(SNCF_STOP_AREA_URL);
+    json_t* j_content = load_json_from_url(g_current_departures_url);
 
     pthread_mutex_lock(&g_departure_table_mutex);
 
