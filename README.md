@@ -4,7 +4,7 @@ This project aims to display a train departure board with a split-flap effect in
 
 ## Building the program
 
-This program currently only supports Linux and MacOS, and maybe other POSIX OSes (untested).
+This program currently only supports Linux and MacOS, and probably other POSIX OSes (untested).
 It requires the libraries **ncurses**, **jansson** and **libcurl**.
 
 Simply run `make` in the root directory and then run `./splitflap` to use the program.
