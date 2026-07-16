@@ -1,5 +1,6 @@
 #include "json.h"
 
+#include <ncurses.h>
 #include <stdio.h>
 
 #include "net.h"

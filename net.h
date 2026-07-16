@@ -10,6 +10,11 @@ typedef struct _response {
     char* content;
 } response_t;
 
+typedef struct _request {
+    char *url;
+    struct curl_slist *headers;
+} request_t;
+
 response_t net_response_init(size_t content_max_size);
 
 void net_response_clean(response_t* response);

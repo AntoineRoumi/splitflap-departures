@@ -82,7 +82,6 @@ char* net_get(char* url) {
     curl_easy_setopt(net_curl, CURLOPT_URL, url);
 
     struct curl_slist* list = NULL;
-    // TODO remove API key in the future
 
     net_set_auth_headers(&list);
 

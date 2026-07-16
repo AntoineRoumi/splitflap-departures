@@ -16,14 +16,16 @@ sncf_departure_table g_departure_table = {.n_departures = 0,
 pthread_mutex_t g_departure_table_mutex = PTHREAD_MUTEX_INITIALIZER;
 bool g_departure_table_updated = false;
 char* g_current_stop_area = NULL;
-char* g_current_departures_url = NULL; 
+char* g_current_departures_url = NULL;
 
-void sncf_init_api(char *stop_area) {
+void sncf_init_api(char* stop_area) {
     g_current_stop_area = realloc(g_current_stop_area, strlen(stop_area) + 1);
     strcpy(g_current_stop_area, stop_area);
 
-    g_current_departures_url = realloc(g_current_departures_url, snprintf(NULL, 0, SNCF_STOP_AREA_URL, stop_area) + 1);
-    sprintf(g_current_departures_url, SNCF_STOP_AREA_URL, stop_area);
+    g_current_departures_url = realloc(
+        g_current_departures_url,
+        snprintf(NULL, 0, SNCF_DEPARTURES_STOP_AREA_URL, stop_area) + 1);
+    sprintf(g_current_departures_url, SNCF_DEPARTURES_STOP_AREA_URL, stop_area);
 }
 
 // SNCF time format is yyyymmddThhmmss (T is the separator character)
@@ -67,11 +69,64 @@ int sncf_compute_delay(train_time_t* base_departure_time,
     }
 }
 
-void sncf_get_departure_table(char* stop_area,
-                              sncf_departure_table* dep_table) {
-    char *url = malloc(snprintf(NULL, 0, SNCF_STOP_AREA_URL, stop_area) + 1);
-    sprintf(url, SNCF_STOP_AREA_URL, stop_area);
+int sncf_autocomplete_stop_area(char* text, int max_results, sncf_stop_area* stop_areas[]) {
+    char* url =
+        malloc(snprintf(NULL, 0, SNCF_AUTOCOMPLETE_STOP_AREA_URL, text) + 1);
+    sprintf(url, SNCF_AUTOCOMPLETE_STOP_AREA_URL, text);
     json_t* j_root = load_json_from_url(url);
+    free(url);
+
+    if (!j_root) {
+        fprintf(stderr, "error: couldn't load autocomplete json\n");
+        return 0;
+    }
+
+    if (!json_is_object(j_root)) {
+        fprintf(stderr, "error: root is not an object\n");
+        json_decref(j_root);
+        return 0;
+    }
+
+    json_t *j_results = json_object_get(j_root, "pt_objects");
+
+    if (!j_results) {
+        fprintf(stderr, "error: results is null\n");
+        json_decref(j_root);
+        return 0;
+    }
+    if (!json_is_array(j_results)) {
+        fprintf(stderr, "error: results is not an array\n");
+        json_decref(j_root);
+        return 0;
+    }
+
+    int stop_areas_count = json_array_size(j_results);
+    if (stop_areas_count > max_results) {
+        stop_areas_count = max_results;
+    }
+
+    json_t *j_result;
+    char *id, *name;
+    sncf_stop_area *current_stop_area;
+    for (int i = 0; i < stop_areas_count; i++) {
+        j_result = json_array_get(j_results, i);
+        current_stop_area = &(*stop_areas)[i];
+        json_unpack(j_result, "{s:s,s:s}", "id", &id, "name", &name);
+
+        strncpy(current_stop_area->id, id, 63);
+        strncpy(current_stop_area->name, name, 63);
+    }
+
+    return stop_areas_count;
+}
+
+void sncf_get_departure_table(char* stop_area_id,
+                              sncf_departure_table* dep_table) {
+    char* url = malloc(
+        snprintf(NULL, 0, SNCF_DEPARTURES_STOP_AREA_URL, stop_area_id) + 1);
+    sprintf(url, SNCF_DEPARTURES_STOP_AREA_URL, stop_area_id);
+    json_t* j_root = load_json_from_url(url);
+    free(url);
 
     sncf_parse_departure_table_from_json(j_root, dep_table);
 }
@@ -79,8 +134,7 @@ void sncf_get_departure_table(char* stop_area,
 void sncf_parse_departure_table_from_json(json_t* j_root,
                                           sncf_departure_table* dep_table) {
     if (!j_root) {
-        fprintf(stderr, "error: couldn't load json from %s\n",
-                SNCF_STOP_AREA_URL);
+        fprintf(stderr, "error: couldn't load departure table json\n");
         return;
     }
 

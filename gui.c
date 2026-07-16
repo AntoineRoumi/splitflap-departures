@@ -59,6 +59,10 @@ char* gui_station_name_entry() {
     char* station_name = malloc(GUI_STATION_NAME_LENGTH + 1);
     int current_length = 0;
 
+    int number_of_results = 0;
+    sncf_stop_area *autocomplete_stop_areas = malloc(10 * sizeof(sncf_stop_area));
+    bool name_changed = false;
+
     mvprintw(GUI_STATION_NAME_ENTRY_TOP, GUI_STATION_NAME_ENTRY_OFFSET,
              GUI_STATION_NAME_ENTRY_TEXT);
 
@@ -73,17 +77,30 @@ char* gui_station_name_entry() {
                     c);
 
             station_name[current_length++] = c;
+            station_name[current_length] = '\0';
+            name_changed = true;
         } else if (c == KEY_BACKSPACE && current_length != 0) {
-            --current_length;
+            station_name[current_length--] = '\0';
+            name_changed = true;
+
             mvaddch(GUI_STATION_NAME_ENTRY_TOP,
                     GUI_STATION_NAME_ENTRY_OFFSET +
                         strlen(GUI_STATION_NAME_ENTRY_TEXT) + current_length,
                     ' ');
-
-            move(GUI_STATION_NAME_ENTRY_TOP,
-                 GUI_STATION_NAME_ENTRY_OFFSET +
-                     strlen(GUI_STATION_NAME_ENTRY_TEXT) + current_length);
         }
+
+        if (name_changed) {
+            // TODO Fix this
+            number_of_results = sncf_autocomplete_stop_area(station_name, 10, &autocomplete_stop_areas);
+        }
+
+        for (int i = 0; i < number_of_results; i++) {
+            mvprintw(GUI_STATION_NAME_ENTRY_TOP + 2 * (i + 1), GUI_STATION_NAME_ENTRY_OFFSET, "%s", autocomplete_stop_areas[i].name);
+        }
+
+        move(GUI_STATION_NAME_ENTRY_TOP,
+             GUI_STATION_NAME_ENTRY_OFFSET +
+                 strlen(GUI_STATION_NAME_ENTRY_TEXT) + current_length);
     } while (c != '\n');
 
     station_name[current_length] = '\0';
