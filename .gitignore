@@ -1,3 +1,5 @@
 splitflap
 config.json
 .cache
+*.dSYM/
+compile_commands.json
