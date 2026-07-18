@@ -12,4 +12,4 @@ void gui_update_departures();
 
 void gui_display_departures(sncf_departure_table *departures);
 
-char *gui_station_name_entry();
+void gui_station_name_entry(sncf_station *station);

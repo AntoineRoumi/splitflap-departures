@@ -15,17 +15,26 @@ sncf_departure_table g_departure_table = {.n_departures = 0,
                                           .departures = NULL};
 pthread_mutex_t g_departure_table_mutex = PTHREAD_MUTEX_INITIALIZER;
 bool g_departure_table_updated = false;
-char* g_current_stop_area = NULL;
+sncf_station g_current_station = {.id = "", .name = ""};
 char* g_current_departures_url = NULL;
 
-void sncf_init_api(char* stop_area) {
-    g_current_stop_area = realloc(g_current_stop_area, strlen(stop_area) + 1);
-    strcpy(g_current_stop_area, stop_area);
+void sncf_init_api(sncf_station *station) {
+    sncf_set_station(station);
+}
+
+void sncf_set_station(sncf_station *station) {
+    pthread_mutex_lock(&g_departure_table_mutex);
+
+    strcpy(g_current_station.id, station->id);
+    strcpy(g_current_station.name, station->name);
+    g_departure_table_updated = true;
 
     g_current_departures_url = realloc(
         g_current_departures_url,
-        snprintf(NULL, 0, SNCF_DEPARTURES_STOP_AREA_URL, stop_area) + 1);
-    sprintf(g_current_departures_url, SNCF_DEPARTURES_STOP_AREA_URL, stop_area);
+        snprintf(NULL, 0, SNCF_DEPARTURES_STOP_AREA_URL, station->id) + 1);
+    sprintf(g_current_departures_url, SNCF_DEPARTURES_STOP_AREA_URL, station->id);
+
+    pthread_mutex_unlock(&g_departure_table_mutex);
 }
 
 // SNCF time format is yyyymmddThhmmss (T is the separator character)
@@ -69,7 +78,8 @@ int sncf_compute_delay(train_time_t* base_departure_time,
     }
 }
 
-int sncf_autocomplete_stop_area(char* text, int max_results, sncf_stop_area* stop_areas[]) {
+int sncf_autocomplete_stop_area(char* text, int max_results,
+                                sncf_station* stop_areas[]) {
     char* url =
         malloc(snprintf(NULL, 0, SNCF_AUTOCOMPLETE_STOP_AREA_URL, text) + 1);
     sprintf(url, SNCF_AUTOCOMPLETE_STOP_AREA_URL, text);
@@ -88,7 +98,7 @@ int sncf_autocomplete_stop_area(char* text, int max_results, sncf_stop_area* sto
         return 0;
     }
 
-    json_t *j_results = json_object_get(j_root, "pt_objects");
+    json_t* j_results = json_object_get(j_root, "pt_objects");
 
     // No result
     if (!j_results) {
@@ -106,9 +116,9 @@ int sncf_autocomplete_stop_area(char* text, int max_results, sncf_stop_area* sto
         stop_areas_count = max_results;
     }
 
-    json_t *j_result;
+    json_t* j_result;
     char *id, *name;
-    sncf_stop_area *current_stop_area;
+    sncf_station* current_stop_area;
     for (int i = 0; i < stop_areas_count; i++) {
         j_result = json_array_get(j_results, i);
         current_stop_area = &(*stop_areas)[i];
@@ -205,7 +215,6 @@ void sncf_parse_departure_table_from_json(json_t* j_root,
             dep->dep_time = current_datetime;
         }
     }
-
 }
 
 void sncf_update_departures() {
@@ -217,15 +226,6 @@ void sncf_update_departures() {
 
     json_decref(j_content);
 
-    g_departure_table_updated = true;
-
-    pthread_mutex_unlock(&g_departure_table_mutex);
-}
-
-void sncf_update_station_name(const char* name) {
-    pthread_mutex_lock(&g_departure_table_mutex);
-
-    strcpy(g_departure_table.station_name, name);
     g_departure_table_updated = true;
 
     pthread_mutex_unlock(&g_departure_table_mutex);

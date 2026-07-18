@@ -2,12 +2,14 @@
 
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef void (*update_callback_t)(void);
 
 typedef struct _update_thread_input {
-    int interval_seconds;
+    uint64_t interval_seconds;
     update_callback_t callback;
+    bool restart;
 } update_thread_input_t;
 
 typedef struct _update {
@@ -19,3 +21,5 @@ update_t* update_start(int interval_seconds,
                            update_callback_t callback);
 
 void update_stop(update_t* update);
+
+void update_restart(update_t* update);

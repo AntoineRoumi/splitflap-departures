@@ -3,6 +3,7 @@
 #include <ncurses.h>
 #include <pthread.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "api_sncf.h"
 
@@ -30,16 +31,21 @@ void gui_init() {
     raw();
     keypad(stdscr, TRUE);
     noecho();
+    nodelay(stdscr, TRUE);
+
+    if (has_colors()) {
+        fprintf(stderr, "error: this terminal does not support color\n");
+    }
+    start_color();
+    init_pair(1, COLOR_BLACK, COLOR_WHITE);
 }
 
 char gui_process_event() {
-    nodelay(stdscr, TRUE);
     int c = getch();
 
     // Process some special gui events first
     switch (c) {
         case KEY_RESIZE:
-            gui_display_departures(NULL);
             break;
         case KEY_MOUSE:
             break;
@@ -53,21 +59,23 @@ int gui_compute_row_height(size_t index) {
 }
 
 // Remember to free the string after use
-char* gui_station_name_entry() {
+void gui_station_name_entry(sncf_station *station) {
     clear();
 
     char* station_name = malloc(GUI_STATION_NAME_LENGTH + 1);
     int current_length = 0;
 
     int number_of_results = 0;
-    sncf_stop_area* autocomplete_stop_areas =
-        malloc(10 * sizeof(sncf_stop_area));
+    sncf_station* autocomplete_stop_areas =
+        malloc(10 * sizeof(sncf_station));
     bool name_changed = false;
 
     mvprintw(GUI_STATION_NAME_ENTRY_TOP, GUI_STATION_NAME_ENTRY_OFFSET,
              GUI_STATION_NAME_ENTRY_TEXT);
 
     int c;
+    struct timeval time_stop, time_start;
+    uint64_t delta_time;
     do {
         c = getch();
 
@@ -75,16 +83,28 @@ char* gui_station_name_entry() {
             station_name[current_length++] = c;
             station_name[current_length] = '\0';
             name_changed = true;
+            gettimeofday(&time_start, NULL);
         } else if (c == KEY_BACKSPACE && current_length != 0) {
+            clear();
             station_name[--current_length] = '\0';
             name_changed = true;
+            gettimeofday(&time_start, NULL);
         }
 
         if (name_changed) {
-            clear();
-            number_of_results = sncf_autocomplete_stop_area(
-                station_name, 10, &autocomplete_stop_areas);
-            name_changed = false;
+            gettimeofday(&time_stop, NULL);
+            delta_time = (time_stop.tv_sec - time_start.tv_sec);
+
+            if ((c == '\n' || delta_time >= 1) && current_length > 0) {
+                clear();
+                number_of_results = sncf_autocomplete_stop_area(
+                    station_name, 10, &autocomplete_stop_areas);
+                name_changed = false;
+            } else if (current_length == 0) {
+                clear();
+                number_of_results = 0;
+                name_changed = false;
+            }
 
             for (int i = 0; i < number_of_results; i++) {
                 mvprintw(GUI_STATION_NAME_ENTRY_TOP + 2 * (i + 1),
@@ -100,9 +120,53 @@ char* gui_station_name_entry() {
         }
     } while (c != '\n');
 
-    station_name[current_length] = '\0';
+    // Station selector
+    if (number_of_results == 0) {
+        return;
+    }
 
-    return station_name;
+    int selected_option = 0;
+    bool is_selected;
+    do {
+        c = getch();
+
+        switch (c) {
+            case KEY_DOWN:
+                if (selected_option < number_of_results - 1) {
+                    ++selected_option;
+                }
+                break;
+            case KEY_UP:
+                if (selected_option > 0) {
+                    --selected_option;
+                }
+                break;
+        }
+
+        for (int i = 0; i < number_of_results; i++) {
+            if ((is_selected = (i == selected_option))) {
+                attron(COLOR_PAIR(1));
+            }
+
+            mvprintw(GUI_STATION_NAME_ENTRY_TOP + 2 * (i + 1),
+                     GUI_STATION_NAME_ENTRY_OFFSET, "%s",
+                     autocomplete_stop_areas[i].name);
+
+            if (is_selected) {
+                attroff(COLOR_PAIR(1));
+            }
+        }
+
+        mvprintw(GUI_STATION_NAME_ENTRY_TOP, GUI_STATION_NAME_ENTRY_OFFSET,
+                 "%s%s", GUI_STATION_NAME_ENTRY_TEXT, station_name);
+
+        move(GUI_STATION_NAME_ENTRY_TOP,
+             GUI_STATION_NAME_ENTRY_OFFSET +
+                 strlen(GUI_STATION_NAME_ENTRY_TEXT) + current_length);
+    } while (c != '\n');
+
+    strcpy(station->id, autocomplete_stop_areas[selected_option].id);
+    strcpy(station->name, autocomplete_stop_areas[selected_option].name);
 }
 
 void gui_update_departures() {
@@ -122,7 +186,7 @@ void gui_display_departures(sncf_departure_table* departure_table) {
     clear();
 
     mvprintw(GUI_STATION_NAME_ROW, GUI_LEFT_PADDING, "%s",
-             departure_table->station_name);
+             g_current_station.name);
 
     mvprintw(GUI_HEADER_ROW, GUI_TIME_OFFSET, "Time");
     mvprintw(GUI_HEADER_ROW, GUI_DELAY_OFFSET, "Delay");

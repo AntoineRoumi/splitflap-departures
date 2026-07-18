@@ -3,8 +3,10 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include "net.h"
@@ -12,10 +14,22 @@
 static void* update_thread(void* ptr) {
     update_thread_input_t* input = ptr;
 
-    while (1) {
-        input->callback();
+    struct timeval time_stop, time_start;
+    uint64_t delta_time = input->interval_seconds;
 
-        sleep(input->interval_seconds);
+    while (1) {
+        if (delta_time >= input->interval_seconds) {
+            gettimeofday(&time_start, NULL);
+            input->callback();
+        }
+
+        if (input->restart) {
+            delta_time = input->interval_seconds;
+            input->restart = false;
+        } else {
+            gettimeofday(&time_stop, NULL);
+            delta_time = time_stop.tv_sec - time_start.tv_sec;
+        }
     }
 
     return NULL;
@@ -41,4 +55,8 @@ void update_stop(update_t* update) {
     pthread_kill(update->thread_id, SIGINT);
 
     free(update);
+}
+
+void update_restart(update_t* update) { 
+    update->input.restart = true;
 }

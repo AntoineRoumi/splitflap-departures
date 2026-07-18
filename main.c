@@ -1,6 +1,5 @@
 #include <ncurses.h>
 #include <pthread.h>
-#include <stdlib.h>
 
 #include "api_sncf.h"
 #include "config.h"
@@ -15,25 +14,27 @@ int main(int argc, char* argv[]) {
     // Init curl
     net_init();
 
-    sncf_init_api("87686006");
+    sncf_station selected_station = {.id = "stop_area:SNCF:87686006", .name = "Gare de Lyon" };
+    sncf_init_api(&selected_station);
 
     gui_init();
 
     // Update every minute
-    update_t *departure_table_updater = update_start(60, sncf_update_departures);
+    int update_time_sec = 60;
+    update_t *departure_table_updater;
+    departure_table_updater = update_start(update_time_sec, sncf_update_departures);
 
     char c = ' ';
-    char* station_name;
     for (;;) {
         c = gui_process_event();
 
         switch (c) {
             case 's':
-                station_name = gui_station_name_entry();
+                gui_station_name_entry(&selected_station);
 
-                sncf_update_station_name(station_name);
+                sncf_set_station(&selected_station);
 
-                free(station_name);
+                update_restart(departure_table_updater);
                 break;
             case 'q':
                 goto _exit;
