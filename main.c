@@ -2,15 +2,12 @@
 #include <curses.h>
 #include <ncursesw/curses.h>
 #include <pthread.h>
-#include <string.h>
-#include <wchar.h>
 
 #include "api_sncf.h"
 #include "config.h"
 #include "gui.h"
 #include "net.h"
 #include "update.h"
-#include "utils.h"
 
 int main(int argc, char* argv[]) {
     // Load config

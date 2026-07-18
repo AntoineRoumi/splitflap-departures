@@ -3,11 +3,10 @@
 #include "api_sncf.h"
 
 typedef struct _departures_display {
-    int n_lines;
-    char** lines;
+    size_t n_lines;
+    size_t max_n_lines;
+    wchar_t** lines;
 } departures_display;
-
-void gui_init_departures_display(int n_lines, departures_display* display);
 
 void gui_init();
 
