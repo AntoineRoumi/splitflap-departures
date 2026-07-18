@@ -74,12 +74,20 @@ void net_set_auth_headers(struct curl_slist** headers_list) {
 }
 
 char* net_get(char* url) {
-
     if (!net_curl) {
-        fprintf(stderr, "error: curl is uninitialized\n");
+        fprintf(stderr, "error: libcurl is uninitialized\n");
     }
 
-    curl_easy_setopt(net_curl, CURLOPT_URL, url);
+    CURLUcode ret;
+    CURLU *encoded_url = curl_url();
+    ret = curl_url_set(encoded_url, CURLUPART_URL, url, CURLU_URLENCODE | CURLU_ALLOW_SPACE);
+    if (ret) {
+        fprintf(stderr, "error: couldn't set curl url for url %s", url);
+        exit(1);
+        return NULL;
+    }
+
+    curl_easy_setopt(net_curl, CURLOPT_CURLU, encoded_url);
 
     struct curl_slist* list = NULL;
 
@@ -93,12 +101,15 @@ char* net_get(char* url) {
     curl_easy_setopt(net_curl, CURLOPT_WRITEDATA, &response);
 
     CURLcode result = curl_easy_perform(net_curl);
+
     if (result != CURLE_OK) {
         fprintf(stderr, "error: couldn't perform curl request %s\n",
                 curl_easy_strerror(result));
         net_response_clean(&response);
         return NULL;
     }
+
+    response.content[response.pos++] = '\0'; // NULL terminate the string
 
     return response.content;
 }
