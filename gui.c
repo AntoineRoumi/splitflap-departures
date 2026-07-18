@@ -1,5 +1,6 @@
 #include "gui.h"
 
+#include <assert.h>
 #include <curses.h>
 #include <locale.h>
 #include <ncursesw/curses.h>
@@ -128,8 +129,16 @@ void gui_generate_departures_display(sncf_departure_table* departures,
     }
 }
 
-void gui_splitflap_animate(departures_display* old_display,
-                           departures_display* new_display) {}
+int gui_splitflap_animate_frame(departures_display* old_display,
+                           departures_display* new_display) {
+    assert(old_display->max_n_lines == new_display->max_n_lines);
+
+    for (size_t i_line = 0; i_line < new_display->n_lines; ++i_line) {
+        // TODO
+    }
+
+    return 0;
+}
 
 // Remember to free the string after use
 void gui_station_name_entry(sncf_station* station) {

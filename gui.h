@@ -20,7 +20,7 @@ void gui_display_departures(sncf_departure_table* departures);
 
 void gui_generate_departures_display(sncf_departure_table* departures, departures_display *display);
 
-void gui_splitflap_animate(departures_display *old_display, departures_display *new_display);
+int gui_splitflap_animate_frame(departures_display *old_display, departures_display *new_display);
 
 void gui_station_name_entry(sncf_station* station);
 
