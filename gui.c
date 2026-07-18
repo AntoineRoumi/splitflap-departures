@@ -1,11 +1,14 @@
 #include "gui.h"
 
-#include <ncurses.h>
+#include <curses.h>
+#include <locale.h>
+#include <ncursesw/curses.h>
 #include <pthread.h>
 #include <string.h>
 #include <sys/time.h>
 
 #include "api_sncf.h"
+#include "utils.h"
 
 #define GUI_TOP_OFFSET 1
 #define GUI_STATION_NAME_HEIGHT 2
@@ -16,17 +19,36 @@
 #define GUI_ROW_HEIGHT 2
 #define GUI_LEFT_PADDING 2
 #define GUI_TIME_OFFSET (GUI_LEFT_PADDING)
-#define GUI_DELAY_OFFSET (GUI_TIME_OFFSET + 7)
-#define GUI_LINE_OFFSET (GUI_DELAY_OFFSET + 10)
-#define GUI_TRAIN_NUMBER_OFFSET (GUI_LINE_OFFSET + 16)
-#define GUI_DESTINATION_OFFSET (GUI_TRAIN_NUMBER_OFFSET + 10)
+#define GUI_TIME_LENGTH 7
+#define GUI_DELAY_OFFSET (GUI_TIME_OFFSET + GUI_TIME_LENGTH)
+#define GUI_DELAY_LENGTH 10
+#define GUI_LINE_OFFSET (GUI_DELAY_OFFSET + GUI_DELAY_LENGTH)
+#define GUI_LINE_LENGTH 16
+#define GUI_TRAIN_NUMBER_OFFSET (GUI_LINE_OFFSET + GUI_LINE_LENGTH)
+#define GUI_TRAIN_NUMBER_LENGTH 10
+#define GUI_DESTINATION_OFFSET (GUI_TRAIN_NUMBER_OFFSET + GUI_TRAIN_NUMBER_LENGTH)
+#define GUI_DESTINATION_LENGTH 64
 
-#define GUI_STATION_NAME_LENGTH 95
+#define GUI_LINE_BUFFER_SIZE 512
+
+#define GUI_STATION_NAME_LENGTH 64 
 #define GUI_STATION_NAME_ENTRY_TOP 1
 #define GUI_STATION_NAME_ENTRY_OFFSET 2
 #define GUI_STATION_NAME_ENTRY_TEXT "Station name: "
 
+static wchar_t wstring_buffer[512];
+
+
+void gui_init_departures_display(int n_lines, departures_display *display) {
+    display->n_lines = n_lines;
+    display->lines = malloc(n_lines * sizeof(char*));
+    for (int i = 0; i < n_lines; ++i) {
+        display->lines[i] = malloc(GUI_LINE_BUFFER_SIZE);
+    }
+}
+
 void gui_init() {
+    setlocale(LC_ALL, "fr_FR.UTF-8");
     initscr();
     raw();
     keypad(stdscr, TRUE);
@@ -58,16 +80,21 @@ int gui_compute_row_height(size_t index) {
     return GUI_DEPARTURES_ROW + GUI_ROW_HEIGHT * index;
 }
 
+void gui_generate_departures_display(sncf_departure_table* departures, departures_display *display) {
+}
+
+void gui_splitflap_animate(departures_display *old_display, departures_display *new_display) {
+}
+
 // Remember to free the string after use
-void gui_station_name_entry(sncf_station *station) {
+void gui_station_name_entry(sncf_station* station) {
     clear();
 
     char* station_name = malloc(GUI_STATION_NAME_LENGTH + 1);
     int current_length = 0;
 
     int number_of_results = 0;
-    sncf_station* autocomplete_stop_areas =
-        malloc(10 * sizeof(sncf_station));
+    sncf_station* autocomplete_stop_areas = malloc(10 * sizeof(sncf_station));
     bool name_changed = false;
 
     mvprintw(GUI_STATION_NAME_ENTRY_TOP, GUI_STATION_NAME_ENTRY_OFFSET,
@@ -107,16 +134,20 @@ void gui_station_name_entry(sncf_station *station) {
             }
 
             for (int i = 0; i < number_of_results; i++) {
-                mvprintw(GUI_STATION_NAME_ENTRY_TOP + 2 * (i + 1),
-                         GUI_STATION_NAME_ENTRY_OFFSET, "%s",
-                         autocomplete_stop_areas[i].name);
+                utf8_string_to_wstring(autocomplete_stop_areas[i].name, wstring_buffer, GUI_STATION_NAME_LENGTH + 1);
+                mvaddwstr(GUI_STATION_NAME_ENTRY_TOP + 2 * (i + 1),
+                         GUI_STATION_NAME_ENTRY_OFFSET,
+                         wstring_buffer);
             }
+
             mvprintw(GUI_STATION_NAME_ENTRY_TOP, GUI_STATION_NAME_ENTRY_OFFSET,
                      "%s%s", GUI_STATION_NAME_ENTRY_TEXT, station_name);
 
             move(GUI_STATION_NAME_ENTRY_TOP,
                  GUI_STATION_NAME_ENTRY_OFFSET +
                      strlen(GUI_STATION_NAME_ENTRY_TEXT) + current_length);
+
+            refresh();
         }
     } while (c != '\n');
 
@@ -148,9 +179,10 @@ void gui_station_name_entry(sncf_station *station) {
                 attron(COLOR_PAIR(1));
             }
 
-            mvprintw(GUI_STATION_NAME_ENTRY_TOP + 2 * (i + 1),
-                     GUI_STATION_NAME_ENTRY_OFFSET, "%s",
-                     autocomplete_stop_areas[i].name);
+            utf8_string_to_wstring(autocomplete_stop_areas[i].name, wstring_buffer, GUI_STATION_NAME_LENGTH + 1);
+            mvaddwstr(GUI_STATION_NAME_ENTRY_TOP + 2 * (i + 1),
+                     GUI_STATION_NAME_ENTRY_OFFSET,
+                     wstring_buffer);
 
             if (is_selected) {
                 attroff(COLOR_PAIR(1));
@@ -185,8 +217,10 @@ void gui_update_departures() {
 void gui_display_departures(sncf_departure_table* departure_table) {
     clear();
 
-    mvprintw(GUI_STATION_NAME_ROW, GUI_LEFT_PADDING, "%s",
-             g_current_station.name);
+
+    utf8_string_to_wstring(g_current_station.name, wstring_buffer, GUI_STATION_NAME_LENGTH + 1);
+    mvaddwstr(GUI_STATION_NAME_ROW, GUI_LEFT_PADDING,
+             wstring_buffer);
 
     mvprintw(GUI_HEADER_ROW, GUI_TIME_OFFSET, "Time");
     mvprintw(GUI_HEADER_ROW, GUI_DELAY_OFFSET, "Delay");
@@ -202,9 +236,11 @@ void gui_display_departures(sncf_departure_table* departure_table) {
     for (size_t i = 0; i < departure_table->n_departures; ++i) {
         dep = &departure_table->departures[i];
         row_y = gui_compute_row_height(i);
+
         if (i % 2 == 0) {
             attron(COLOR_PAIR(1));
         }
+
         mvprintw(row_y, GUI_TIME_OFFSET, "%02d:%02d", dep->dep_time.hour,
                  dep->dep_time.minute);
 
@@ -216,7 +252,14 @@ void gui_display_departures(sncf_departure_table* departure_table) {
 
         mvprintw(row_y, GUI_LINE_OFFSET, "%s", dep->line);
         mvprintw(row_y, GUI_TRAIN_NUMBER_OFFSET, "%s", dep->train_number);
-        mvprintw(row_y, GUI_DESTINATION_OFFSET, "%s", dep->dest);
+
+        utf8_string_to_wstring(dep->dest, wstring_buffer, GUI_DESTINATION_LENGTH + 1);
+        mvaddwstr(row_y, GUI_DESTINATION_OFFSET, wstring_buffer);
+
+        for (int i = utf8_strlen(dep->dest); i < GUI_DESTINATION_LENGTH; ++i) {
+            addch(' ');
+        }
+
         if (i % 2 == 0) {
             attroff(COLOR_PAIR(1));
         }

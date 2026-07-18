@@ -1,12 +1,12 @@
 CC=gcc
-C_FLAGS=-g -Wall -Wextra -Wno-unused-parameter -Werror=return-type
-LIBS=-lncurses -lcurl -ljansson -pthread
+C_FLAGS=-g -Wall -Wextra -Wno-unused-parameter -Werror=return-type -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=600
+LIBS=-lncursesw -ltinfo -lcurl -ljansson -pthread
 LD_FLAGS=
 SRC=config.c utils.c net.c update.c json.c api_sncf.c gui.c main.c
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
-	C_FLAGS += -D LINUX 
+	C_FLAGS += -D LINUX
 endif
 ifeq ($(UNAME_S),Darwin)
 	C_FLAGS += -D MACOS

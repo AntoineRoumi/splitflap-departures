@@ -1,7 +1,7 @@
 #include "net.h"
 
 #include <curl/curl.h>
-#include <ncurses.h>
+#include <ncursesw/curses.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>

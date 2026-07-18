@@ -1,6 +1,6 @@
 #include "json.h"
 
-#include <ncurses.h>
+#include <ncursesw/curses.h>
 #include <stdio.h>
 #include <string.h>
 

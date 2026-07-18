@@ -1,11 +1,16 @@
-#include <ncurses.h>
+#include <bits/types/mbstate_t.h>
+#include <curses.h>
+#include <ncursesw/curses.h>
 #include <pthread.h>
+#include <string.h>
+#include <wchar.h>
 
 #include "api_sncf.h"
 #include "config.h"
 #include "gui.h"
 #include "net.h"
 #include "update.h"
+#include "utils.h"
 
 int main(int argc, char* argv[]) {
     // Load config
@@ -14,15 +19,17 @@ int main(int argc, char* argv[]) {
     // Init curl
     net_init();
 
-    sncf_station selected_station = {.id = "stop_area:SNCF:87686006", .name = "Gare de Lyon" };
+    sncf_station selected_station = {.id = "stop_area:SNCF:87686006",
+                                     .name = "Gare de Lyon"};
     sncf_init_api(&selected_station);
 
     gui_init();
 
     // Update every minute
     int update_time_sec = 60;
-    update_t *departure_table_updater;
-    departure_table_updater = update_start(update_time_sec, sncf_update_departures);
+    update_t* departure_table_updater;
+    departure_table_updater =
+        update_start(update_time_sec, sncf_update_departures);
 
     char c = ' ';
     for (;;) {
