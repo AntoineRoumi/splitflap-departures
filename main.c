@@ -47,6 +47,7 @@ int main(int argc, char* argv[]) {
 
         if (g_departure_table_updated) {
             gui_update_departures();
+            g_departure_table_updated = false;
         }
     }
 

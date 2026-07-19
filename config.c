@@ -3,10 +3,11 @@
 #include <jansson.h>
 #include <stdlib.h>
 #include <string.h>
+#include "gui.h"
 
-config g_config = {.sncf_auth_key = NULL};
+config g_config = {.sncf_auth_key = NULL, .splitflap_fps = GUI_SPLITFLAP_ANIMATION_FPS };
 
-char* load_config_string(json_t* j_root, const char* key) {
+char* load_mandatory_config_string(json_t* j_root, const char* key) {
     json_t* j_value = json_object_get(j_root, key);
 
     if (!j_value) {
@@ -47,5 +48,7 @@ void load_config() {
         exit(EXIT_FAILURE);
     }
 
-    g_config.sncf_auth_key = load_config_string(j_root, "sncf_auth_key");
+    g_config.sncf_auth_key = load_mandatory_config_string(j_root, "sncf_auth_key");
+
+    json_unpack(j_root, "{s?i}", "splitflap_fps", &g_config.splitflap_fps);
 }

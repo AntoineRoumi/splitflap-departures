@@ -2,9 +2,12 @@
 
 typedef struct config_ {
     char *sncf_auth_key;
+
+    int splitflap_fps;
 } config;
 
 extern config g_config;
 
-// Load .env file (no sanitization)
+// Load json config file
+// I use json since I'm already using Jansson for web responses
 void load_config();

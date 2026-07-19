@@ -1,15 +1,18 @@
 #include "gui.h"
 
 #include <assert.h>
+#include <bits/types/struct_timeval.h>
 #include <curses.h>
 #include <locale.h>
 #include <ncursesw/curses.h>
 #include <pthread.h>
 #include <string.h>
 #include <sys/time.h>
+#include <unistd.h>
 #include <wchar.h>
 
 #include "api_sncf.h"
+#include "config.h"
 #include "utils.h"
 
 #define GUI_TOP_OFFSET 1
@@ -31,6 +34,9 @@
 #define GUI_DESTINATION_OFFSET \
     (GUI_TRAIN_NUMBER_OFFSET + GUI_TRAIN_NUMBER_LENGTH)
 #define GUI_DESTINATION_LENGTH 64
+#define GUI_TOTAL_LINE_LENGTH                               \
+    (GUI_TIME_LENGTH + GUI_DELAY_LENGTH + GUI_LINE_LENGTH + \
+     GUI_TRAIN_NUMBER_LENGTH + GUI_DESTINATION_LENGTH)
 
 #define GUI_LINE_BUFFER_SIZE 512
 
@@ -39,26 +45,74 @@
 #define GUI_STATION_NAME_ENTRY_OFFSET 2
 #define GUI_STATION_NAME_ENTRY_TEXT "Station name: "
 
+#define GUI_SPLITFLAP_FRAME_DURATION (1.f / g_config.splitflap_fps)
+
 static wchar_t wstring_buffer[512];
+
+typedef struct _departures_display {
+    size_t n_lines;
+    int** char_indices;
+    wchar_t** lines;
+} departures_display;
 
 static void gui_init_departures_display(int n_lines,
                                         departures_display* display) {
-    display->n_lines = 0;
-    display->max_n_lines = n_lines;
+    display->n_lines = n_lines;
     display->lines = malloc(n_lines * sizeof(char*));
+    display->char_indices = malloc(n_lines * sizeof(int*));
     for (int i = 0; i < n_lines; ++i) {
-        display->lines[i] = malloc(GUI_LINE_BUFFER_SIZE);
+        display->char_indices[i] = malloc(GUI_TOTAL_LINE_LENGTH * sizeof(int));
+        for (int j = 0; j < GUI_TOTAL_LINE_LENGTH; ++j) {
+            display->char_indices[i][j] = 0;
+        }
+        display->lines[i] = malloc(GUI_TOTAL_LINE_LENGTH * sizeof(wchar_t));
+        for (int j = 0; j < GUI_TOTAL_LINE_LENGTH; ++j) {
+            display->lines[i][j] = L' ';
+        }
     }
 }
 
 static const wchar_t french_characters[] =
-    L" ABCDEFGHIJKLMNOPQRSTUVWXYZÀÂÇÉÈÊËÎÏÔÙÛabcdefghijklmnopqrstuvwxyzàâçéèêëî"
-    L"ïôùû0123456789-'";
+    L" ABCDEFGHIJKLMNOPQRSTUVWXYZÀÂÄÇÉÈÊËÎÏÔÙÛÜabcdefghijklmnopqrstuvwxyzàâäçéè"
+    L"êëîïôùûü"
+    L"ïôùû0123456789+-'";
 static size_t n_french_characters;
-static const char digits[] = "0123456789";
-static size_t n_digits = sizeof(digits) - 1;
+static const wchar_t digits[] = L" 0123456789";
+static size_t n_digits = (sizeof(digits) - 1) / sizeof(wchar_t);
 
-static departures_display ddisplay;
+static int index_of_wchar_french(wchar_t c) {
+    for (size_t i = 0; i < n_french_characters; i++) {
+        if (french_characters[i] == c) {
+            return (int)i;
+        }
+    }
+    return -1;
+}
+
+static int index_of_digit(wchar_t c) {
+    for (size_t i = 0; i < n_digits; ++i) {
+        if (digits[i] == c) {
+            return (int)i;
+        }
+    }
+    return -1;
+}
+
+static void generate_indices_from_departure_line(wchar_t line[], int indices[],
+                                                 int line_length) {
+    indices[0] = index_of_digit(line[0]);
+    indices[1] = index_of_digit(line[1]);
+    indices[2] = 0;
+    indices[3] = index_of_digit(line[3]);
+    indices[4] = index_of_digit(line[4]);
+
+    for (int i = 5; i < line_length; ++i) {
+        indices[i] = index_of_wchar_french(line[i]);
+    }
+}
+
+static departures_display target_display = {0};
+static departures_display current_display = {0};
 
 void gui_init() {
     setlocale(LC_ALL, "fr_FR.UTF-8");
@@ -74,7 +128,8 @@ void gui_init() {
     start_color();
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
 
-    gui_init_departures_display(10, &ddisplay);
+    gui_init_departures_display(10, &current_display);
+    gui_init_departures_display(10, &target_display);
 
     n_french_characters = wcslen(french_characters);
 }
@@ -99,13 +154,12 @@ int gui_compute_row_height(size_t index) {
 
 void gui_generate_departures_display(sncf_departure_table* departures,
                                      departures_display* display) {
-    display->n_lines = (departures->n_departures > display->max_n_lines)
-                           ? display->max_n_lines
-                           : departures->n_departures;
-
+    size_t displayed_departures = (departures->n_departures > display->n_lines)
+                                      ? display->n_lines
+                                      : departures->n_departures;
     sncf_departure* dep;
     wchar_t* line;
-    for (size_t i = 0; i < display->n_lines; ++i) {
+    for (size_t i = 0; i < displayed_departures; ++i) {
         dep = &(departures->departures[i]);
         line = display->lines[i];
 
@@ -113,7 +167,7 @@ void gui_generate_departures_display(sncf_departure_table* departures,
         if (dep->delay <= 0) {
             strcpy(delay_string, "On time");
         } else {
-            sprintf(delay_string, "+%d'", dep->delay);
+            snprintf(delay_string, GUI_DELAY_LENGTH, "+%d'", dep->delay);
         }
 
         utf8_string_to_wstring(dep->dest, wstring_buffer,
@@ -126,18 +180,59 @@ void gui_generate_departures_display(sncf_departure_table* departures,
                  (strlen(dep->train_number) - GUI_TRAIN_NUMBER_LENGTH), " ",
                  wstring_buffer,
                  (wcslen(wstring_buffer) - GUI_DESTINATION_LENGTH), " ");
+
+        generate_indices_from_departure_line(line, display->char_indices[i],
+                                             GUI_TOTAL_LINE_LENGTH);
+    }
+
+    // Fill the empty lines with whitespaces
+    for (size_t i = displayed_departures; i < display->n_lines; ++i) {
+        wmemset(display->lines[i], L' ', GUI_TOTAL_LINE_LENGTH);
     }
 }
 
-int gui_splitflap_animate_frame(departures_display* old_display,
-                           departures_display* new_display) {
-    assert(old_display->max_n_lines == new_display->max_n_lines);
+// Render the next frame of splitflap animation and returns the number of flips
+// during that frame (0 if old_display == new_display)
+int gui_splitflap_frame(departures_display* old_display,
+                        departures_display* new_display) {
+    assert(old_display->n_lines == new_display->n_lines);
 
+    int total_changes = 0;
+
+    wchar_t* old_line;
+    int *new_indices, *old_indices;
     for (size_t i_line = 0; i_line < new_display->n_lines; ++i_line) {
-        // TODO
+        old_line = old_display->lines[i_line];
+        new_indices = new_display->char_indices[i_line];
+        old_indices = old_display->char_indices[i_line];
+
+        // For time
+        for (size_t i_char = 0; i_char < 5; ++i_char) {
+            if (i_char == 2) {
+                old_line[i_char] = L':';
+            } else if (new_indices[i_char] != old_indices[i_char]) {
+                old_indices[i_char] = (old_indices[i_char] + 1) % n_digits;
+                old_line[i_char] = digits[old_indices[i_char]];
+                ++total_changes;
+            }
+        }
+
+        for (size_t i_char = 5; i_char < GUI_TOTAL_LINE_LENGTH; ++i_char) {
+            if (new_indices[i_char] == -1) {
+                old_indices[i_char] = -1;
+                old_line[i_char] = new_display->lines[i_line][i_char];
+            }
+
+            if (new_indices[i_char] != old_indices[i_char]) {
+                old_indices[i_char] =
+                    (old_indices[i_char] + 1) % n_french_characters;
+                old_line[i_char] = french_characters[old_indices[i_char]];
+                ++total_changes;
+            }
+        }
     }
 
-    return 0;
+    return total_changes;
 }
 
 // Remember to free the string after use
@@ -257,19 +352,17 @@ void gui_station_name_entry(sncf_station* station) {
 }
 
 void gui_update_departures() {
-    if (!g_departure_table_updated) {
-        gui_display_departures(&g_departure_table);
-    }
-
     pthread_mutex_lock(&g_departure_table_mutex);
 
-    gui_display_departures(&g_departure_table);
+    gui_generate_departures_display(&g_departure_table, &target_display);
     g_departure_table_updated = false;
 
     pthread_mutex_unlock(&g_departure_table_mutex);
+
+    gui_render_departures(&g_departure_table);
 }
 
-void gui_display_departures(sncf_departure_table* departure_table) {
+void gui_render_departures(sncf_departure_table* departure_table) {
     clear();
 
     utf8_string_to_wstring(g_current_station.name, wstring_buffer,
@@ -285,22 +378,31 @@ void gui_display_departures(sncf_departure_table* departure_table) {
     start_color();
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
 
-    int row_y;
+    struct timeval time_start, time_stop;
+    float time_elapsed_s = 0.f;
+    while (gui_splitflap_frame(&current_display, &target_display) != 0) {
+        gettimeofday(&time_start, NULL);
 
-    gui_generate_departures_display(departure_table, &ddisplay);
+        for (size_t i = 0; i < current_display.n_lines; ++i) {
+            if (i % 2 == 0) {
+                attron(COLOR_PAIR(1));
+            }
+            mvaddwstr(gui_compute_row_height(i), GUI_TIME_OFFSET,
+                      current_display.lines[i]);
+            if (i % 2 == 0) {
+                attroff(COLOR_PAIR(1));
+            }
+        }
 
-    for (size_t i = 0; i < ddisplay.n_lines; ++i) {
-        if (i % 2 == 0) {
-            attron(COLOR_PAIR(1));
-        }
-        row_y = gui_compute_row_height(i);
-        mvaddwstr(row_y, GUI_TIME_OFFSET, ddisplay.lines[i]);
-        if (i % 2 == 0) {
-            attroff(COLOR_PAIR(1));
-        }
+        refresh();
+
+        do {
+            gettimeofday(&time_stop, NULL);
+            time_elapsed_s =
+                (float)(time_stop.tv_sec - time_start.tv_sec) +
+                (float)(time_stop.tv_usec - time_start.tv_usec) / 1000000.f;
+        } while (time_elapsed_s < GUI_SPLITFLAP_FRAME_DURATION);
     }
-
-    refresh();
 }
 
 void gui_terminate() { endwin(); }

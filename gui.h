@@ -2,11 +2,7 @@
 
 #include "api_sncf.h"
 
-typedef struct _departures_display {
-    size_t n_lines;
-    size_t max_n_lines;
-    wchar_t** lines;
-} departures_display;
+#define GUI_SPLITFLAP_ANIMATION_FPS 20.f
 
 void gui_init();
 
@@ -16,11 +12,7 @@ void gui_terminate();
 
 void gui_update_departures();
 
-void gui_display_departures(sncf_departure_table* departures);
-
-void gui_generate_departures_display(sncf_departure_table* departures, departures_display *display);
-
-int gui_splitflap_animate_frame(departures_display *old_display, departures_display *new_display);
+void gui_render_departures(sncf_departure_table* departures);
 
 void gui_station_name_entry(sncf_station* station);
 
