@@ -83,8 +83,7 @@ char* net_get(char* url) {
     ret = curl_url_set(encoded_url, CURLUPART_URL, url, CURLU_URLENCODE | CURLU_ALLOW_SPACE);
     if (ret) {
         fprintf(stderr, "error: couldn't set curl url for url %s", url);
-        exit(1);
-        return NULL;
+        return NULL; 
     }
 
     curl_easy_setopt(net_curl, CURLOPT_CURLU, encoded_url);

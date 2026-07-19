@@ -23,36 +23,37 @@ int main(int argc, char* argv[]) {
     gui_init();
 
     // Update every minute
-    int update_time_sec = 60;
-    update_t* departure_table_updater;
-    departure_table_updater =
-        update_start(update_time_sec, sncf_update_departures);
+    update_t departure_table_updater;
+    update_create(&departure_table_updater, g_config.update_interval,
+                  sncf_update_departures);
+    update_start(&departure_table_updater);
 
-    char c = ' ';
+    int c;
     for (;;) {
-        c = gui_process_event();
+        while ((c = gui_process_event()) != ERR) {
+            switch (c) {
+                case 's':
+                    gui_station_name_entry(&selected_station);
 
-        switch (c) {
-            case 's':
-                gui_station_name_entry(&selected_station);
+                    sncf_set_station(&selected_station);
 
-                sncf_set_station(&selected_station);
-
-                update_restart(departure_table_updater);
-                break;
-            case 'q':
-                goto _exit;
-                break;
+                    update_restart(&departure_table_updater);
+                    break;
+                case 'q':
+                    goto _exit;
+                    break;
+            }
         }
 
-        if (g_departure_table_updated) {
-            gui_update_departures();
-            g_departure_table_updated = false;
-        }
+        gui_update_display();
+
+        gui_sleep();
     }
 
 _exit:
-    update_stop(departure_table_updater);
+    mvprintw(LINES - 2, 2, "Terminating...");
+    refresh();
+    update_stop(&departure_table_updater);
 
     gui_terminate();
 

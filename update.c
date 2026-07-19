@@ -1,7 +1,6 @@
 #include "update.h"
 
 #include <pthread.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -14,49 +13,52 @@
 static void* update_thread(void* ptr) {
     update_thread_input_t* input = ptr;
 
-    struct timeval time_stop, time_start;
-    uint64_t delta_time = input->interval_seconds;
+    // We sleep for chunks of 0.1 second each
+    static struct timespec sleep_interval = { .tv_sec = 0, .tv_nsec = 1e8 };
 
+    int sleep_chunks;
     while (1) {
-        if (delta_time >= input->interval_seconds) {
-            gettimeofday(&time_start, NULL);
-            input->callback();
-        }
+        input->callback();
 
-        if (input->restart) {
-            delta_time = input->interval_seconds;
-            input->restart = false;
-        } else {
-            gettimeofday(&time_stop, NULL);
-            delta_time = time_stop.tv_sec - time_start.tv_sec;
+        sleep_chunks = 0;
+        while (sleep_chunks < input->update_interval_s) {
+            if (input->stop) {
+                goto _update_end;
+            }
+            if (input->restart) {
+                input->restart = false;
+                break;
+            }
+            nanosleep(&sleep_interval, NULL);
+            ++sleep_chunks;
         }
     }
+
+_update_end:
 
     return NULL;
 }
 
-update_t* update_start(int interval_seconds, update_callback_t callback) {
-    update_t* update_object = malloc(sizeof(update_t));
+void update_create(update_t *update, int interval_seconds, update_callback_t callback) {
+    update->input.update_interval_s = interval_seconds;
+    update->input.callback = callback;
+}
 
-    update_object->input.interval_seconds = interval_seconds;
-    update_object->input.callback = callback;
+void update_start(update_t* update) {
+    int ret = pthread_create(&update->thread_id, NULL, update_thread,
+                             (void*)&update->input);
 
-    int ret = pthread_create(&update_object->thread_id, NULL, update_thread,
-                             (void*)&update_object->input);
     if (ret) {
         fprintf(stderr, "error: cannot create update thread\n");
         exit(EXIT_FAILURE);
     }
-
-    return update_object;
 }
 
 void update_stop(update_t* update) {
-    pthread_kill(update->thread_id, SIGINT);
-
-    free(update);
+    update->input.stop = true;
+    pthread_join(update->thread_id, NULL);
 }
 
 void update_restart(update_t* update) { 
-    update->input.restart = true;
+    update->input.restart = true; 
 }

@@ -4,6 +4,7 @@ typedef struct config_ {
     char *sncf_auth_key;
 
     int splitflap_fps;
+    int update_interval;
 } config;
 
 extern config g_config;

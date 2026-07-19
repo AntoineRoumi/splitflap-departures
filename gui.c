@@ -1,6 +1,7 @@
 #include "gui.h"
 
 #include <assert.h>
+#include <bits/time.h>
 #include <bits/types/struct_timeval.h>
 #include <curses.h>
 #include <locale.h>
@@ -8,6 +9,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 #include <wchar.h>
 
@@ -21,7 +23,6 @@
 #define GUI_HEADER_HEIGHT 2
 #define GUI_HEADER_ROW (GUI_STATION_NAME_ROW + GUI_STATION_NAME_HEIGHT)
 #define GUI_DEPARTURES_ROW (GUI_HEADER_ROW + GUI_HEADER_HEIGHT)
-#define GUI_ROW_HEIGHT 2
 #define GUI_LEFT_PADDING 2
 #define GUI_TIME_OFFSET (GUI_LEFT_PADDING)
 #define GUI_TIME_LENGTH 7
@@ -38,6 +39,9 @@
     (GUI_TIME_LENGTH + GUI_DELAY_LENGTH + GUI_LINE_LENGTH + \
      GUI_TRAIN_NUMBER_LENGTH + GUI_DESTINATION_LENGTH)
 
+#define GUI_ROW_HEIGHT 2
+#define GUI_ROW_HEIGHT_INDEX(i) (GUI_DEPARTURES_ROW + GUI_ROW_HEIGHT * (i)) 
+
 #define GUI_LINE_BUFFER_SIZE 512
 
 #define GUI_STATION_NAME_LENGTH 64
@@ -46,6 +50,12 @@
 #define GUI_STATION_NAME_ENTRY_TEXT "Station name: "
 
 #define GUI_SPLITFLAP_FRAME_DURATION (1.f / g_config.splitflap_fps)
+
+#define GUI_INPUT_UPDATE_FREQUENCY 60  // > 1 !!!
+#define GUI_INPUT_UPDATE_INTERVAL_NANO \
+    (long long)(1e9 * (1.f / GUI_INPUT_UPDATE_FREQUENCY))
+
+static struct timespec input_update_interval = {0};
 
 static wchar_t wstring_buffer[512];
 
@@ -132,6 +142,9 @@ void gui_init() {
     gui_init_departures_display(10, &target_display);
 
     n_french_characters = wcslen(french_characters);
+
+    input_update_interval = (struct timespec){
+        .tv_sec = 0, .tv_nsec = GUI_INPUT_UPDATE_INTERVAL_NANO};
 }
 
 char gui_process_event() {
@@ -148,9 +161,7 @@ char gui_process_event() {
     return c;
 }
 
-int gui_compute_row_height(size_t index) {
-    return GUI_DEPARTURES_ROW + GUI_ROW_HEIGHT * index;
-}
+void gui_sleep() { nanosleep(&input_update_interval, NULL); }
 
 void gui_generate_departures_display(sncf_departure_table* departures,
                                      departures_display* display) {
@@ -351,7 +362,11 @@ void gui_station_name_entry(sncf_station* station) {
     strcpy(station->name, autocomplete_stop_areas[selected_option].name);
 }
 
-void gui_update_departures() {
+void gui_update_display() {
+    if (!g_departure_table_updated) {
+        return;
+    }
+
     pthread_mutex_lock(&g_departure_table_mutex);
 
     gui_generate_departures_display(&g_departure_table, &target_display);
@@ -378,16 +393,21 @@ void gui_render_departures(sncf_departure_table* departure_table) {
     start_color();
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
 
-    struct timeval time_start, time_stop;
-    float time_elapsed_s = 0.f;
-    while (gui_splitflap_frame(&current_display, &target_display) != 0) {
-        gettimeofday(&time_start, NULL);
+    struct timespec time_start, time_stop;
+    int total_changes;
+    struct timespec remaining_time = {0};
+    struct timespec target_time = {.tv_sec = (time_t)GUI_SPLITFLAP_FRAME_DURATION, .tv_nsec = (GUI_SPLITFLAP_FRAME_DURATION - (time_t)GUI_SPLITFLAP_FRAME_DURATION) * 1e9 };
+
+    while (1) {
+        clock_gettime(CLOCK_REALTIME, &time_start);
+
+        total_changes = gui_splitflap_frame(&current_display, &target_display);
 
         for (size_t i = 0; i < current_display.n_lines; ++i) {
             if (i % 2 == 0) {
                 attron(COLOR_PAIR(1));
             }
-            mvaddwstr(gui_compute_row_height(i), GUI_TIME_OFFSET,
+            mvaddwstr(GUI_ROW_HEIGHT_INDEX(i), GUI_TIME_OFFSET,
                       current_display.lines[i]);
             if (i % 2 == 0) {
                 attroff(COLOR_PAIR(1));
@@ -396,12 +416,15 @@ void gui_render_departures(sncf_departure_table* departure_table) {
 
         refresh();
 
-        do {
-            gettimeofday(&time_stop, NULL);
-            time_elapsed_s =
-                (float)(time_stop.tv_sec - time_start.tv_sec) +
-                (float)(time_stop.tv_usec - time_start.tv_usec) / 1000000.f;
-        } while (time_elapsed_s < GUI_SPLITFLAP_FRAME_DURATION);
+        if (total_changes == 0) {
+            return;
+        }
+
+        clock_gettime(CLOCK_REALTIME, &time_stop);
+
+        remaining_time.tv_sec = target_time.tv_sec - (time_stop.tv_sec - time_start.tv_sec);
+        remaining_time.tv_nsec = target_time.tv_nsec - (time_stop.tv_nsec - time_start.tv_nsec);
+        nanosleep(&remaining_time, NULL);
     }
 }
 
