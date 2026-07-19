@@ -14,7 +14,7 @@ static void* update_thread(void* ptr) {
     update_thread_input_t* input = ptr;
 
     // We sleep for chunks of 0.1 second each
-    static struct timespec sleep_interval = { .tv_sec = 0, .tv_nsec = 1e8 };
+    static struct timespec sleep_interval = {.tv_sec = 0, .tv_nsec = 1e8};
 
     int sleep_chunks;
     while (1) {
@@ -39,7 +39,8 @@ _update_end:
     return NULL;
 }
 
-void update_create(update_t *update, int interval_seconds, update_callback_t callback) {
+void update_create(update_t* update, int interval_seconds,
+                   update_callback_t callback) {
     update->input.update_interval_s = interval_seconds;
     update->input.callback = callback;
 }
@@ -59,6 +60,4 @@ void update_stop(update_t* update) {
     pthread_join(update->thread_id, NULL);
 }
 
-void update_restart(update_t* update) { 
-    update->input.restart = true; 
-}
+void update_restart(update_t* update) { update->input.restart = true; }

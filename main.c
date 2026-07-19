@@ -51,8 +51,6 @@ int main(int argc, char* argv[]) {
     }
 
 _exit:
-    mvprintw(LINES - 2, 2, "Terminating...");
-    refresh();
     update_stop(&departure_table_updater);
 
     gui_terminate();

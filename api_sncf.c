@@ -18,11 +18,9 @@ bool g_departure_table_updated = false;
 sncf_station g_current_station = {.id = "", .name = ""};
 char* g_current_departures_url = NULL;
 
-void sncf_init_api(sncf_station *station) {
-    sncf_set_station(station);
-}
+void sncf_init_api(sncf_station* station) { sncf_set_station(station); }
 
-void sncf_set_station(sncf_station *station) {
+void sncf_set_station(sncf_station* station) {
     pthread_mutex_lock(&g_departure_table_mutex);
 
     strcpy(g_current_station.id, station->id);
@@ -32,7 +30,8 @@ void sncf_set_station(sncf_station *station) {
     g_current_departures_url = realloc(
         g_current_departures_url,
         snprintf(NULL, 0, SNCF_DEPARTURES_STOP_AREA_URL, station->id) + 1);
-    sprintf(g_current_departures_url, SNCF_DEPARTURES_STOP_AREA_URL, station->id);
+    sprintf(g_current_departures_url, SNCF_DEPARTURES_STOP_AREA_URL,
+            station->id);
 
     pthread_mutex_unlock(&g_departure_table_mutex);
 }

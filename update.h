@@ -18,7 +18,8 @@ typedef struct _update {
     update_thread_input_t input;
 } update_t;
 
-void update_create(update_t *update, int interval_seconds, update_callback_t callback);
+void update_create(update_t* update, int interval_seconds,
+                   update_callback_t callback);
 
 void update_start(update_t* update);
 

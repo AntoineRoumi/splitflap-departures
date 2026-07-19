@@ -79,11 +79,12 @@ char* net_get(char* url) {
     }
 
     CURLUcode ret;
-    CURLU *encoded_url = curl_url();
-    ret = curl_url_set(encoded_url, CURLUPART_URL, url, CURLU_URLENCODE | CURLU_ALLOW_SPACE);
+    CURLU* encoded_url = curl_url();
+    ret = curl_url_set(encoded_url, CURLUPART_URL, url,
+                       CURLU_URLENCODE | CURLU_ALLOW_SPACE);
     if (ret) {
         fprintf(stderr, "error: couldn't set curl url for url %s", url);
-        return NULL; 
+        return NULL;
     }
 
     curl_easy_setopt(net_curl, CURLOPT_CURLU, encoded_url);
@@ -108,7 +109,7 @@ char* net_get(char* url) {
         return NULL;
     }
 
-    response.content[response.pos++] = '\0'; // NULL terminate the string
+    response.content[response.pos++] = '\0';  // NULL terminate the string
 
     return response.content;
 }

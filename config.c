@@ -13,7 +13,9 @@
 #define MIN_UPDATE_INTERVAL 60
 #define MAX_UPDATE_INTERVAL (10 * MIN_UPDATE_INTERVAL)
 
-config g_config = {.sncf_auth_key = NULL, .splitflap_fps = DEFAULT_SPLITFLAP_ANIMATION_FPS, .update_interval = MIN_UPDATE_INTERVAL };
+config g_config = {.sncf_auth_key = NULL,
+                   .splitflap_fps = DEFAULT_SPLITFLAP_ANIMATION_FPS,
+                   .update_interval = MIN_UPDATE_INTERVAL};
 
 char* load_mandatory_config_string(json_t* j_root, const char* key) {
     json_t* j_value = json_object_get(j_root, key);
@@ -56,10 +58,15 @@ void load_config() {
         exit(EXIT_FAILURE);
     }
 
-    g_config.sncf_auth_key = load_mandatory_config_string(j_root, "sncf_auth_key");
+    g_config.sncf_auth_key =
+        load_mandatory_config_string(j_root, "sncf_auth_key");
 
-    json_unpack(j_root, "{s?i, s?i}", "splitflap_fps", &g_config.splitflap_fps, "update_interval", &g_config.update_interval);
-    
-    g_config.splitflap_fps = CLAMP(g_config.splitflap_fps, MIN_SPLITFLAP_ANIMATION_FPS, MAX_SPLITFLAP_ANIMATION_FPS);
-    g_config.update_interval = CLAMP(g_config.update_interval, MIN_UPDATE_INTERVAL, MAX_UPDATE_INTERVAL);
+    json_unpack(j_root, "{s?i, s?i}", "splitflap_fps", &g_config.splitflap_fps,
+                "update_interval", &g_config.update_interval);
+
+    g_config.splitflap_fps =
+        CLAMP(g_config.splitflap_fps, MIN_SPLITFLAP_ANIMATION_FPS,
+              MAX_SPLITFLAP_ANIMATION_FPS);
+    g_config.update_interval = CLAMP(g_config.update_interval,
+                                     MIN_UPDATE_INTERVAL, MAX_UPDATE_INTERVAL);
 }

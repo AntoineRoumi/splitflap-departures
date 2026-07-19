@@ -7,7 +7,7 @@
 
 #define SNCF_DEPARTURES_STOP_AREA_URL                   \
     "https://api.sncf.com/v1/coverage/sncf/stop_areas/" \
-    "%s/"                                \
+    "%s/"                                               \
     "departures"
 
 #define SNCF_AUTOCOMPLETE_STOP_AREA_URL                 \
@@ -53,12 +53,12 @@ extern char* g_current_departures_url;
 
 json_t* load_json_from_file(char* path);
 
-void sncf_init_api(sncf_station *station);
+void sncf_init_api(sncf_station* station);
 
-void sncf_set_station(sncf_station *station);
+void sncf_set_station(sncf_station* station);
 
 int sncf_autocomplete_stop_area(char* text, int max_results,
-                                 sncf_station* stop_areas[]);
+                                sncf_station* stop_areas[]);
 
 void sncf_get_departure_table(char* stop_area_id,
                               sncf_departure_table* dep_table);

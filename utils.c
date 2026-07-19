@@ -38,7 +38,7 @@ int utf8_strlen(const char* s) {
     return len;
 }
 
-int utf8_string_to_wstring(char *text, wchar_t *wtext, int max_bytes) {
+int utf8_string_to_wstring(char* text, wchar_t* wtext, int max_bytes) {
     char* pt = text;
     wchar_t* wpt = wtext;
     int clength;

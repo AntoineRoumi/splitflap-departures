@@ -8,12 +8,13 @@
 #include "net.h"
 
 json_t* load_json_from_text(char* text) {
-    json_t *j_root;
+    json_t* j_root;
     json_error_t error;
     j_root = json_loads(text, 0, &error);
 
     if (!j_root) {
-        printw("error: on line %d:%d: %s\n", error.line, error.column, error.text);
+        printw("error: on line %d:%d: %s\n", error.line, error.column,
+               error.text);
         return NULL;
     }
 
@@ -27,7 +28,8 @@ json_t* load_json_from_file(char* path) {
     j_root = json_load_file(path, 0, &error);
 
     if (!j_root) {
-        fprintf(stderr, "error: on line %d:%d: %s\n", error.line, error.column, error.text);
+        fprintf(stderr, "error: on line %d:%d: %s\n", error.line, error.column,
+                error.text);
         return NULL;
     }
 

@@ -11,8 +11,8 @@ typedef struct _response {
 } response_t;
 
 typedef struct _request {
-    char *url;
-    struct curl_slist *headers;
+    char* url;
+    struct curl_slist* headers;
 } request_t;
 
 response_t net_response_init(size_t content_max_size);

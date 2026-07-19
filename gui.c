@@ -40,7 +40,7 @@
      GUI_TRAIN_NUMBER_LENGTH + GUI_DESTINATION_LENGTH)
 
 #define GUI_ROW_HEIGHT 2
-#define GUI_ROW_HEIGHT_INDEX(i) (GUI_DEPARTURES_ROW + GUI_ROW_HEIGHT * (i)) 
+#define GUI_ROW_HEIGHT_INDEX(i) (GUI_DEPARTURES_ROW + GUI_ROW_HEIGHT * (i))
 
 #define GUI_LINE_BUFFER_SIZE 512
 
@@ -396,7 +396,11 @@ void gui_render_departures(sncf_departure_table* departure_table) {
     struct timespec time_start, time_stop;
     int total_changes;
     struct timespec remaining_time = {0};
-    struct timespec target_time = {.tv_sec = (time_t)GUI_SPLITFLAP_FRAME_DURATION, .tv_nsec = (GUI_SPLITFLAP_FRAME_DURATION - (time_t)GUI_SPLITFLAP_FRAME_DURATION) * 1e9 };
+    struct timespec target_time = {
+        .tv_sec = (time_t)GUI_SPLITFLAP_FRAME_DURATION,
+        .tv_nsec = (GUI_SPLITFLAP_FRAME_DURATION -
+                    (time_t)GUI_SPLITFLAP_FRAME_DURATION) *
+                   1e9};
 
     while (1) {
         clock_gettime(CLOCK_REALTIME, &time_start);
@@ -422,8 +426,10 @@ void gui_render_departures(sncf_departure_table* departure_table) {
 
         clock_gettime(CLOCK_REALTIME, &time_stop);
 
-        remaining_time.tv_sec = target_time.tv_sec - (time_stop.tv_sec - time_start.tv_sec);
-        remaining_time.tv_nsec = target_time.tv_nsec - (time_stop.tv_nsec - time_start.tv_nsec);
+        remaining_time.tv_sec =
+            target_time.tv_sec - (time_stop.tv_sec - time_start.tv_sec);
+        remaining_time.tv_nsec =
+            target_time.tv_nsec - (time_stop.tv_nsec - time_start.tv_nsec);
         nanosleep(&remaining_time, NULL);
     }
 }
