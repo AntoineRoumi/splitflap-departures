@@ -14,6 +14,7 @@
 #include <wchar.h>
 
 #include "api_sncf.h"
+#include "audio.h"
 #include "config.h"
 #include "utils.h"
 
@@ -199,6 +200,15 @@ void gui_generate_departures_display(sncf_departure_table* departures,
     // Fill the empty lines with whitespaces
     for (size_t i = displayed_departures; i < display->n_lines; ++i) {
         wmemset(display->lines[i], L' ', GUI_TOTAL_LINE_LENGTH);
+    }
+}
+
+void gui_copy_departures_display(departures_display* dst, departures_display* src) {
+    assert(dst->n_lines == src->n_lines);
+
+    for (size_t i_line = 0; i_line < src->n_lines; ++i_line) {
+        memcpy(dst->lines[i_line], src->lines[i_line], sizeof(wchar_t) * GUI_TOTAL_LINE_LENGTH);
+        memcpy(dst->char_indices[i_line], src->char_indices[i_line], sizeof(int) * GUI_TOTAL_LINE_LENGTH);
     }
 }
 
@@ -394,7 +404,7 @@ void gui_render_departures(sncf_departure_table* departure_table) {
     init_pair(1, COLOR_BLACK, COLOR_WHITE);
 
     struct timespec time_start, time_stop;
-    int total_changes;
+    int total_changes = GUI_TOTAL_LINE_LENGTH;
     struct timespec remaining_time = {0};
     struct timespec target_time = {
         .tv_sec = (time_t)GUI_SPLITFLAP_FRAME_DURATION,
@@ -402,10 +412,23 @@ void gui_render_departures(sncf_departure_table* departure_table) {
                     (time_t)GUI_SPLITFLAP_FRAME_DURATION) *
                    1e9};
 
+    audio_start_splitflap();
+
+    int c;
     while (1) {
         clock_gettime(CLOCK_REALTIME, &time_start);
 
-        total_changes = gui_splitflap_frame(&current_display, &target_display);
+        // Handle input
+        while ((c = getch()) != ERR) {
+            if (c == ' ' || c == 'q') {
+                gui_copy_departures_display(&current_display, &target_display);
+                total_changes = 0;
+            }
+        }
+
+        if (total_changes != 0) {
+            total_changes = gui_splitflap_frame(&current_display, &target_display);
+        }
 
         for (size_t i = 0; i < current_display.n_lines; ++i) {
             if (i % 2 == 0) {
@@ -421,7 +444,7 @@ void gui_render_departures(sncf_departure_table* departure_table) {
         refresh();
 
         if (total_changes == 0) {
-            return;
+            goto _exit_gui_render_departures;
         }
 
         clock_gettime(CLOCK_REALTIME, &time_stop);
@@ -432,6 +455,10 @@ void gui_render_departures(sncf_departure_table* departure_table) {
             target_time.tv_nsec - (time_stop.tv_nsec - time_start.tv_nsec);
         nanosleep(&remaining_time, NULL);
     }
+
+_exit_gui_render_departures:
+
+    audio_stop_splitflap();
 }
 
 void gui_terminate() { endwin(); }

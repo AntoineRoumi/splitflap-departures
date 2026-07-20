@@ -4,6 +4,7 @@
 #include <pthread.h>
 
 #include "api_sncf.h"
+#include "audio.h"
 #include "config.h"
 #include "gui.h"
 #include "net.h"
@@ -21,6 +22,8 @@ int main(int argc, char* argv[]) {
     sncf_init_api(&selected_station);
 
     gui_init();
+
+    audio_init();
 
     // Update every minute
     update_t departure_table_updater;
@@ -52,6 +55,8 @@ int main(int argc, char* argv[]) {
 
 _exit:
     update_stop(&departure_table_updater);
+
+    audio_cleanup();
 
     gui_terminate();
 

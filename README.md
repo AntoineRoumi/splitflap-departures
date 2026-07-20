@@ -1,6 +1,6 @@
 # Split-flap departures
 
-This project aims to display a train departure board with a split-flap effect in the terminal, all written in C.
+This project aims to display a train departure board with a split flap board like-effect in the terminal, all written in C.
 
 ## Building the program
 
@@ -28,4 +28,10 @@ You can also specify the update interval (in seconds) for the departure board an
 ## Key bindings
 
 - Press the `S` key to open the station search engine.
+    - Use `Enter` and the up and down arrows to select the station.
 - Press the `Q` key to quit the application.
+- Press `Q` or `S` to skip the split flap animation.
+
+## Credits
+
+Source for the [split flap sound](https://pixabay.com/sound-effects/city-split-flap-display-58766/).
