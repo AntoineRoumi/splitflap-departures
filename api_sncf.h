@@ -49,19 +49,14 @@ extern sncf_departure_table g_departure_table;
 extern pthread_mutex_t g_departure_table_mutex;
 extern bool g_departure_table_updated;
 extern sncf_station g_current_station;
-extern char* g_current_departures_url;
+extern char g_current_departures_url[1024];
 
 json_t* load_json_from_file(char* path);
-
-void sncf_init_api(sncf_station* station);
 
 void sncf_set_station(sncf_station* station);
 
 int sncf_autocomplete_stop_area(char* text, int max_results,
                                 sncf_station* stop_areas[]);
-
-void sncf_get_departure_table(char* stop_area_id,
-                              sncf_departure_table* dep_table);
 
 void sncf_parse_departure_table_from_json(json_t* j_root,
                                           sncf_departure_table* dep_table);

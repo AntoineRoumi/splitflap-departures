@@ -203,12 +203,15 @@ void gui_generate_departures_display(sncf_departure_table* departures,
     }
 }
 
-void gui_copy_departures_display(departures_display* dst, departures_display* src) {
+void gui_copy_departures_display(departures_display* dst,
+                                 departures_display* src) {
     assert(dst->n_lines == src->n_lines);
 
     for (size_t i_line = 0; i_line < src->n_lines; ++i_line) {
-        memcpy(dst->lines[i_line], src->lines[i_line], sizeof(wchar_t) * GUI_TOTAL_LINE_LENGTH);
-        memcpy(dst->char_indices[i_line], src->char_indices[i_line], sizeof(int) * GUI_TOTAL_LINE_LENGTH);
+        memcpy(dst->lines[i_line], src->lines[i_line],
+               sizeof(wchar_t) * GUI_TOTAL_LINE_LENGTH);
+        memcpy(dst->char_indices[i_line], src->char_indices[i_line],
+               sizeof(int) * GUI_TOTAL_LINE_LENGTH);
     }
 }
 
@@ -390,6 +393,13 @@ void gui_update_display() {
 void gui_render_departures(sncf_departure_table* departure_table) {
     clear();
 
+    if (strlen(g_current_station.id) == 0) {
+        mvprintw(GUI_HEADER_ROW, GUI_TIME_OFFSET,
+                 "No station selected, press [S] to open the search engine");
+        refresh();
+        return;
+    }
+
     utf8_string_to_wstring(g_current_station.name, wstring_buffer,
                            GUI_STATION_NAME_LENGTH + 1);
     mvaddwstr(GUI_STATION_NAME_ROW, GUI_LEFT_PADDING, wstring_buffer);
@@ -427,7 +437,8 @@ void gui_render_departures(sncf_departure_table* departure_table) {
         }
 
         if (total_changes != 0) {
-            total_changes = gui_splitflap_frame(&current_display, &target_display);
+            total_changes =
+                gui_splitflap_frame(&current_display, &target_display);
         }
 
         for (size_t i = 0; i < current_display.n_lines; ++i) {

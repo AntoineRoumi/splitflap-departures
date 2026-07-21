@@ -1,6 +1,7 @@
 #include "net.h"
 
 #include <curl/curl.h>
+#include <curl/typecheck-gcc.h>
 #include <ncursesw/curses.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -106,6 +107,12 @@ char* net_get(char* url) {
         fprintf(stderr, "error: couldn't perform curl request %s\n",
                 curl_easy_strerror(result));
         net_response_clean(&response);
+        return NULL;
+    }
+
+    long response_code;
+    curl_easy_getinfo(net_curl, CURLINFO_RESPONSE_CODE, &response_code);
+    if (response_code != 200) {
         return NULL;
     }
 

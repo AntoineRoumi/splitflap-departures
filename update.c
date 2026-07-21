@@ -1,5 +1,6 @@
 #include "update.h"
 
+#include <curses.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -7,8 +8,6 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
-
-#include "net.h"
 
 static void* update_thread(void* ptr) {
     update_thread_input_t* input = ptr;

@@ -21,12 +21,14 @@ void audio_init() {
         exit(EXIT_FAILURE);
     }
 
-    result = ma_sound_init_from_file(&audio_engine, AUDIO_SPLITFLAP_PATH, 0, NULL, NULL, &audio_splitflap_sound);
+    result = ma_sound_init_from_file(&audio_engine, AUDIO_SPLITFLAP_PATH, 0,
+                                     NULL, NULL, &audio_splitflap_sound);
     if (result != MA_SUCCESS) {
         fprintf(stderr, "error: cannot initialize %s", AUDIO_SPLITFLAP_PATH);
     }
 
-    ma_sound_set_pitch(&audio_splitflap_sound, g_config.splitflap_fps / AUDIO_BASE_FLIPS_PER_SECOND);
+    ma_sound_set_pitch(&audio_splitflap_sound,
+                       g_config.splitflap_fps / AUDIO_BASE_FLIPS_PER_SECOND);
     ma_sound_set_looping(&audio_splitflap_sound, MA_TRUE);
 }
 
@@ -40,6 +42,4 @@ void audio_start_splitflap() {
     ma_sound_start(&audio_splitflap_sound);
 }
 
-void audio_stop_splitflap() {
-    ma_sound_stop(&audio_splitflap_sound);
-}
+void audio_stop_splitflap() { ma_sound_stop(&audio_splitflap_sound); }

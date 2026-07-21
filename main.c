@@ -17,9 +17,8 @@ int main(int argc, char* argv[]) {
     // Init curl
     net_init();
 
-    sncf_station selected_station = {.id = "stop_area:SNCF:87686006",
-                                     .name = "Gare de Lyon"};
-    sncf_init_api(&selected_station);
+    sncf_station selected_station = {0};
+    sncf_set_station(&selected_station);
 
     gui_init();
 
