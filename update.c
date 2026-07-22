@@ -15,12 +15,14 @@ static void* update_thread(void* ptr) {
     // We sleep for chunks of 0.1 second each
     static struct timespec sleep_interval = {.tv_sec = 0, .tv_nsec = 1e8};
 
+    int n_chunks = 10 * input->update_interval_s;
     int sleep_chunks;
     while (1) {
         input->callback();
 
         sleep_chunks = 0;
-        while (sleep_chunks < input->update_interval_s) {
+
+        while (sleep_chunks < n_chunks) {
             if (input->stop) {
                 goto _update_end;
             }
@@ -28,8 +30,11 @@ static void* update_thread(void* ptr) {
                 input->restart = false;
                 break;
             }
+
+
             nanosleep(&sleep_interval, NULL);
             ++sleep_chunks;
+
         }
     }
 
@@ -42,6 +47,8 @@ void update_create(update_t* update, int interval_seconds,
                    update_callback_t callback) {
     update->input.update_interval_s = interval_seconds;
     update->input.callback = callback;
+    update->input.restart = false;
+    update->input.stop = false;
 }
 
 void update_start(update_t* update) {
