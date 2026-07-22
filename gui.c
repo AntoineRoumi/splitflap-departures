@@ -1,17 +1,20 @@
 #include "gui.h"
 
 #include <assert.h>
-#include <bits/time.h>
-#include <bits/types/struct_timeval.h>
 #include <curses.h>
 #include <locale.h>
-#include <ncursesw/curses.h>
 #include <pthread.h>
 #include <string.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #include <wchar.h>
+
+#ifdef MACOS
+#include <ncurses.h>
+#else
+#include <ncursesw/curses.h>
+#endif
 
 #include "api_sncf.h"
 #include "audio.h"

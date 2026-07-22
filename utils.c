@@ -1,6 +1,5 @@
 #include "utils.h"
 
-#include <bits/types/mbstate_t.h>
 #include <ctype.h>
 #include <jansson.h>
 #include <string.h>

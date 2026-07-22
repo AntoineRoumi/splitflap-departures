@@ -1,6 +1,4 @@
-#include <bits/types/mbstate_t.h>
 #include <curses.h>
-#include <ncursesw/curses.h>
 #include <pthread.h>
 
 #include "api_sncf.h"

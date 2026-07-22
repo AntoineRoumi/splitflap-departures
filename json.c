@@ -1,6 +1,5 @@
 #include "json.h"
 
-#include <ncursesw/curses.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,7 +12,7 @@ json_t* load_json_from_text(char* text) {
     j_root = json_loads(text, 0, &error);
 
     if (!j_root) {
-        printw("error: on line %d:%d: %s\n", error.line, error.column,
+        fprintf(stderr, "error: on line %d:%d: %s\n", error.line, error.column,
                error.text);
         return NULL;
     }

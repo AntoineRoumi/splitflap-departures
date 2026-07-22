@@ -2,7 +2,6 @@
 
 #include <curl/curl.h>
 #include <curl/typecheck-gcc.h>
-#include <ncursesw/curses.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
