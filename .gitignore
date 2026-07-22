@@ -1,4 +1,5 @@
 splitflap
+splitflap-debug
 config.json
 .cache
 *.dSYM/
